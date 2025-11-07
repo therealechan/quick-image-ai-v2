@@ -7,7 +7,9 @@ const isMobileMenuOpen = ref(false)
 
 // Selection states
 const selectedPose = ref<any>(null)
+const selectedModel = ref<any>(null)
 const uploadedModel = ref<string | null>(null)
+const showModelSelection = ref(false)
 const generatedResults = ref<any[]>([])
 const isGenerating = ref(false)
 const generationCount = ref(3)
@@ -22,6 +24,16 @@ const poseTemplates = ref([
   { id: '4', name: '休闲走路', thumbnail: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=200&fit=crop', category: 'walking' },
   { id: '5', name: '交叉手臂', thumbnail: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=200&fit=crop', category: 'standing' },
   { id: '6', name: '手摸头发', thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=200&fit=crop', category: 'pose' }
+])
+
+// Model gallery options (reuse from main model generation)
+const modelGallery = ref([
+  { id: '1', name: '女性模特 A', thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=200&fit=crop', type: 'female', style: 'elegant' },
+  { id: '2', name: '女性模特 B', thumbnail: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&h=200&fit=crop', type: 'female', style: 'casual' },
+  { id: '3', name: '男性模特 A', thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=200&fit=crop', type: 'male', style: 'professional' },
+  { id: '4', name: '男性模特 B', thumbnail: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=200&fit=crop', type: 'male', style: 'casual' },
+  { id: '5', name: '女性模特 C', thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=200&fit=crop', type: 'female', style: 'fashion' },
+  { id: '6', name: '男性模特 C', thumbnail: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=200&fit=crop', type: 'male', style: 'sport' }
 ])
 
 // Prompt templates
@@ -57,12 +69,23 @@ const selectPromptTemplate = (template: any) => {
   customPrompt.value = template.prompt
 }
 
+const selectModelFromGallery = (model: any) => {
+  selectedModel.value = model
+  showModelSelection.value = false
+}
+
 const uploadModel = () => {
   // 模拟模特图上传
   uploadedModel.value = 'https://images.unsplash.com/photo-1594736797933-d0d3023055e0?w=300&h=400&fit=crop'
+  selectedModel.value = null // Clear gallery selection when uploading
 }
 
 const generatePoseImages = () => {
+  if ((!selectedModel.value && !uploadedModel.value) || !customPrompt.value.trim()) {
+    alert('请选择模特并输入prompt')
+    return
+  }
+  
   isGenerating.value = true
   
   // 模拟生成过程
@@ -107,22 +130,42 @@ onMounted(() => {
             <p class="text-gray-400">上传模特图，选择姿势参考，生成新姿势</p>
           </div>
 
-          <!-- Upload Model -->
+          <!-- Model Selection -->
           <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">上传模特图</h2>
+            <h2 class="text-lg font-semibold text-white mb-4">选择模特</h2>
             
-            <div
-              @click="uploadModel"
-              class="border-2 border-dashed border-gray-700 hover:border-gray-600 rounded-lg p-6 text-center cursor-pointer transition-colors group"
-            >
-              <Upload class="h-8 w-8 text-gray-500 group-hover:text-gray-400 mx-auto mb-2" />
-              <p class="text-gray-500 group-hover:text-gray-400 text-sm">选择模特图</p>
-              <p class="text-gray-600 text-xs">选择要改变姿势的模特照片</p>
+            <!-- Toggle between gallery and upload -->
+            <div class="flex space-x-2 mb-4">
+              <button
+                @click="showModelSelection = true"
+                class="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700"
+              >
+                从图库选择
+              </button>
+              <button
+                @click="uploadModel"
+                class="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700"
+              >
+                上传图片
+              </button>
             </div>
-
-            <div v-if="uploadedModel" class="mt-4 p-4 bg-gray-800 rounded-lg">
-              <img :src="uploadedModel" alt="Uploaded Model" class="w-20 h-20 object-cover rounded mx-auto mb-2" />
-              <p class="text-green-400 text-sm text-center">模特图上传成功</p>
+            
+            <!-- Show selected/uploaded model -->
+            <div v-if="selectedModel || uploadedModel" class="mt-4 p-4 bg-gray-800 rounded-lg">
+              <img 
+                :src="selectedModel?.thumbnail || uploadedModel" 
+                :alt="selectedModel?.name || 'Uploaded Model'" 
+                class="w-20 h-20 object-cover rounded mx-auto mb-2" 
+              />
+              <p class="text-green-400 text-sm text-center">
+                {{ selectedModel ? selectedModel.name : '模特图上传成功' }}
+              </p>
+              <button
+                @click="selectedModel = null; uploadedModel = null"
+                class="mt-2 text-xs text-gray-400 hover:text-red-400 block mx-auto"
+              >
+                重新选择
+              </button>
             </div>
           </div>
 
@@ -163,7 +206,7 @@ onMounted(() => {
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">参考姿势 <span class="text-gray-500">(可选)</span></h2>
             
-            <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="grid grid-cols-4 gap-3 mb-6">
               <div
                 v-for="pose in poseTemplates"
                 :key="pose.id"
@@ -208,7 +251,7 @@ onMounted(() => {
           <!-- Generate Button -->
           <button
             @click="generatePoseImages"
-:disabled="!uploadedModel || !customPrompt.trim() || isGenerating"
+:disabled="(!selectedModel && !uploadedModel) || !customPrompt.trim() || isGenerating"
             class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
           >
             <span v-if="isGenerating">生成中...</span>
@@ -217,7 +260,7 @@ onMounted(() => {
 
           <div class="mt-4 text-center">
             <p class="text-gray-500 text-sm">预计生成时间：2-3分钟</p>
-            <p class="text-gray-500 text-xs">必选：模特图、Prompt | 可选：参考姿势</p>
+            <p class="text-gray-500 text-xs">必选：选择模特、Prompt | 可选：参考姿势</p>
           </div>
         </div>
       </div>
@@ -234,7 +277,7 @@ onMounted(() => {
             <p class="text-gray-400">正在生成姿势图...</p>
           </div>
 
-          <div v-else-if="generatedResults.length > 0" class="grid grid-cols-2 gap-4">
+          <div v-else-if="generatedResults.length > 0" class="grid grid-cols-3 gap-3">
             <div
               v-for="result in generatedResults"
               :key="result.id"
@@ -258,7 +301,7 @@ onMounted(() => {
           <div v-else>
             <div class="text-center py-16">
               <h3 class="text-lg font-semibold text-white mb-4">优秀案例</h3>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-3 gap-3">
                 <div
                   v-for="sample in sampleResults"
                   :key="sample.id"
@@ -277,6 +320,61 @@ onMounted(() => {
         </div>
       </div>
     </main>
+
+    <!-- Model Gallery Selection Modal -->
+    <div 
+      v-if="showModelSelection" 
+      class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
+      @click.self="showModelSelection = false"
+    >
+      <div class="bg-gray-900 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h3 class="text-xl font-bold text-white">选择模特</h3>
+            <p class="text-gray-400 text-sm mt-1">从图库中选择适合的模特</p>
+          </div>
+          <button
+            @click="showModelSelection = false"
+            class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700 transition-colors"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Model Gallery Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+          <div
+            v-for="model in modelGallery"
+            :key="model.id"
+            @click="selectModelFromGallery(model)"
+            class="relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2 border-gray-700 hover:border-primary-500 group"
+          >
+            <img
+              :src="model.thumbnail"
+              :alt="model.name"
+              class="w-full h-full object-cover"
+            />
+            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all"></div>
+            <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white p-2">
+              <p class="text-sm font-medium">{{ model.name }}</p>
+              <p class="text-xs text-gray-300">{{ model.style }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex justify-center">
+          <button
+            @click="showModelSelection = false"
+            class="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

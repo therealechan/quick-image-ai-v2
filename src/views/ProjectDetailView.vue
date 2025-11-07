@@ -540,7 +540,7 @@ onMounted(() => {
                 已选择 {{ selectedModels.length }} 位
               </div>
             </div>
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-4 gap-3">
               <div
                 v-for="model in modelOptions"
                 :key="model.id"
@@ -606,7 +606,7 @@ onMounted(() => {
                 已选择 {{ selectedTops.length }} 件
               </div>
             </div>
-            <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="grid grid-cols-4 gap-3 mb-4">
               <div
                 v-for="item in topClothingItems"
                 :key="item.id"
@@ -666,7 +666,7 @@ onMounted(() => {
                 已选择 {{ selectedBottoms.length }} 件
               </div>
             </div>
-            <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="grid grid-cols-4 gap-3 mb-4">
               <div
                 v-for="item in bottomClothingItems"
                 :key="item.id"
@@ -721,7 +721,7 @@ onMounted(() => {
           <!-- Accessory Selection -->
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">选择配饰</h2>
-            <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="grid grid-cols-4 gap-3 mb-4">
               <div
                 v-for="accessory in accessoryOptions"
                 :key="accessory.id"
@@ -761,7 +761,7 @@ onMounted(() => {
           <!-- Background Selection -->
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">选择背景</h2>
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-4 gap-3">
               <div
                 v-for="background in backgroundOptions"
                 :key="background.id"
@@ -897,7 +897,7 @@ onMounted(() => {
                   </div>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-3 gap-3">
                   <div
                     v-for="result in group.images"
                     :key="result.id"
@@ -962,7 +962,7 @@ onMounted(() => {
 
             <!-- Single Mode Results -->
             <div v-else>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-3 gap-3">
                 <div
                   v-for="result in generatedResults"
                   :key="result.id"
@@ -1038,7 +1038,7 @@ onMounted(() => {
           <div v-else>
             <div class="text-center py-16">
               <h3 class="text-lg font-semibold text-white mb-4">优秀案例</h3>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-3 gap-3">
                 <div
                   v-for="sample in sampleResults"
                   :key="sample.id"
