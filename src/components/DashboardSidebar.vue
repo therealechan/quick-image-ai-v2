@@ -36,7 +36,7 @@ const route = useRoute()
 const user = computed(() => authService.getCurrentUser())
 const isCollapsed = ref(true) // 默认折叠
 const isHovered = ref(false)
-const hoverTimeout = ref<NodeJS.Timeout | null>(null)
+const hoverTimeout = ref<number | null>(null)
 
 // 计算实际显示状态：折叠状态下悬停时展开
 const isExpanded = computed(() => {
