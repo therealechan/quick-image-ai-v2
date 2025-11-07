@@ -6,8 +6,8 @@ import { authService, type LoginCredentials } from '../services/auth'
 
 const router = useRouter()
 
-const email = ref('')
-const password = ref('')
+const email = ref('demo@quickimage.ai')
+const password = ref('password123')
 const showPassword = ref(false)
 const isLoading = ref(false)
 const error = ref('')

@@ -6,7 +6,6 @@ import {
   User,
   Camera,
   Zap,
-  Folder, 
   Image, 
   Settings, 
   CreditCard, 
@@ -122,8 +121,8 @@ const isActiveRoute = (path: string) => {
 }
 
 const handleNavigation = (path: string) => {
-  // AI功能直接跳转
-  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale') {
+  // 已实现的功能直接跳转
+  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/gallery') {
     router.push(path)
   } else {
     // For now, show placeholder for non-implemented routes

@@ -10,12 +10,16 @@ const selectedTop = ref<any>(null)
 const selectedBottom = ref<any>(null)
 const selectedModel = ref<any>(null)
 const selectedBackground = ref<any>(null)
-const selectedStyle = ref('realistic')
+const selectedAccessory = ref<any>(null)
 const uploadedTop = ref<string | null>(null)
 const uploadedBottom = ref<string | null>(null)
+const uploadedModel = ref<string | null>(null)
+const uploadedAccessory = ref<string | null>(null)
+const selectedPose = ref<any>(null)
+const uploadedPose = ref<string | null>(null)
 const generatedResults = ref<any[]>([])
 const isGenerating = ref(false)
-const generationCount = ref(2)
+const generationCount = ref(3)
 const selectedPromptTemplate = ref<any>(null)
 const customPrompt = ref('')
 
@@ -47,6 +51,15 @@ const modelOptions = ref([
   { id: '6', name: '男性模特 C', thumbnail: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=200&fit=crop', type: 'male', style: 'sport' }
 ])
 
+const accessoryOptions = ref([
+  { id: '1', name: '太阳镜', thumbnail: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=150&h=150&fit=crop', category: 'eyewear' },
+  { id: '2', name: '手表', thumbnail: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=150&h=150&fit=crop', category: 'watch' },
+  { id: '3', name: '项链', thumbnail: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=150&h=150&fit=crop', category: 'jewelry' },
+  { id: '4', name: '手包', thumbnail: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=150&h=150&fit=crop', category: 'bag' },
+  { id: '5', name: '帽子', thumbnail: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=150&h=150&fit=crop', category: 'hat' },
+  { id: '6', name: '围巾', thumbnail: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=150&h=150&fit=crop', category: 'scarf' }
+])
+
 const backgroundOptions = ref([
   { id: '1', name: '纯色背景', thumbnail: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=150&h=150&fit=crop', type: 'solid' },
   { id: '2', name: '咖啡店', thumbnail: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&h=150&fit=crop', type: 'indoor' },
@@ -56,12 +69,6 @@ const backgroundOptions = ref([
   { id: '6', name: '摄影棚', thumbnail: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=150&h=150&fit=crop', type: 'studio' }
 ])
 
-const styleOptions = ref([
-  { value: 'realistic', label: '写实风格' },
-  { value: 'fashion', label: '时尚风格' },
-  { value: 'portrait', label: '肖像风格' },
-  { value: 'commercial', label: '商业风格' }
-])
 
 // Prompt templates for model generation
 const promptTemplates = ref([
@@ -99,6 +106,10 @@ const selectModel = (model: any) => {
   selectedModel.value = model
 }
 
+const selectAccessory = (accessory: any) => {
+  selectedAccessory.value = accessory
+}
+
 const selectBackground = (background: any) => {
   selectedBackground.value = background
 }
@@ -113,13 +124,32 @@ const uploadBottomFile = () => {
   uploadedBottom.value = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=300&h=400&fit=crop'
 }
 
+const uploadModelFile = () => {
+  // 模拟模特文件上传
+  uploadedModel.value = 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=200&fit=crop'
+}
+
+const uploadAccessoryFile = () => {
+  // 模拟配饰文件上传
+  uploadedAccessory.value = 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=150&h=150&fit=crop'
+}
+
+const selectPose = (pose: any) => {
+  selectedPose.value = pose
+}
+
+const uploadPoseFile = () => {
+  // 模拟姿势文件上传
+  uploadedPose.value = 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=200&fit=crop'
+}
+
 const selectPromptTemplate = (template: any) => {
   selectedPromptTemplate.value = template
   customPrompt.value = template.prompt
 }
 
 const generateImages = () => {
-  if (!selectedModel.value || (!selectedTop.value && !uploadedTop.value) || !customPrompt.value.trim()) {
+  if ((!selectedModel.value && !uploadedModel.value) || (!selectedTop.value && !uploadedTop.value) || !customPrompt.value.trim()) {
     alert('请选择模特、上装和prompt')
     return
   }
@@ -141,8 +171,8 @@ const generateImages = () => {
       id: String(index + 1),
       url: mockImages[index % mockImages.length],
       config: { 
-        model: selectedModel.value.name, 
-        style: selectedStyle.value, 
+        model: uploadedModel.value ? '上传的模特' : selectedModel.value.name, 
+ 
         prompt: customPrompt.value.substring(0, 50) + '...'
       }
     }))
@@ -195,7 +225,22 @@ onMounted(() => {
                 />
               </div>
             </div>
-            <div v-if="selectedModel" class="mt-3 text-center">
+            
+            <!-- Upload Model Option -->
+            <div
+              @click="uploadModelFile"
+              class="mt-4 border-2 border-dashed border-gray-700 hover:border-gray-600 rounded-lg p-4 text-center cursor-pointer transition-colors group"
+            >
+              <Upload class="h-6 w-6 text-gray-500 group-hover:text-gray-400 mx-auto mb-2" />
+              <p class="text-gray-500 group-hover:text-gray-400 text-sm">上传模特图</p>
+            </div>
+
+            <div v-if="uploadedModel" class="mt-3 p-3 bg-gray-800 rounded-lg">
+              <img :src="uploadedModel" alt="Uploaded model" class="w-16 h-20 object-cover rounded mx-auto mb-2" />
+              <p class="text-green-400 text-sm text-center">模特图上传成功</p>
+            </div>
+            
+            <div v-else-if="selectedModel" class="mt-3 text-center">
               <span class="text-primary-400 text-sm">已选择: {{ selectedModel.name }}</span>
             </div>
           </div>
@@ -272,6 +317,46 @@ onMounted(() => {
             </div>
           </div>
 
+          <!-- Accessory Selection -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">选择配饰</h2>
+            <div class="grid grid-cols-3 gap-3 mb-4">
+              <div
+                v-for="accessory in accessoryOptions"
+                :key="accessory.id"
+                @click="selectAccessory(accessory)"
+                :class="[
+                  'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  selectedAccessory?.id === accessory.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                ]"
+              >
+                <img
+                  :src="accessory.thumbnail"
+                  :alt="accessory.name"
+                  class="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            
+            <!-- Upload Accessory Option -->
+            <div
+              @click="uploadAccessoryFile"
+              class="border-2 border-dashed border-gray-700 hover:border-gray-600 rounded-lg p-4 text-center cursor-pointer transition-colors group"
+            >
+              <Upload class="h-6 w-6 text-gray-500 group-hover:text-gray-400 mx-auto mb-2" />
+              <p class="text-gray-500 group-hover:text-gray-400 text-sm">上传配饰</p>
+            </div>
+
+            <div v-if="uploadedAccessory" class="mt-3 p-3 bg-gray-800 rounded-lg">
+              <img :src="uploadedAccessory" alt="Uploaded accessory" class="w-16 h-16 object-cover rounded mx-auto mb-2" />
+              <p class="text-green-400 text-sm text-center">配饰上传成功</p>
+            </div>
+            
+            <div v-else-if="selectedAccessory" class="mt-3 text-center">
+              <span class="text-primary-400 text-sm">已选择: {{ selectedAccessory.name }}</span>
+            </div>
+          </div>
+
           <!-- Background Selection -->
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">选择背景</h2>
@@ -300,39 +385,16 @@ onMounted(() => {
           <!-- Generation Count -->  
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">生成数量</h2>
-            <div class="flex space-x-3">
-              <button
-                v-for="count in [1, 2, 3, 4]"
-                :key="count"
-                @click="generationCount = count"
-                :class="[
-                  'px-4 py-2 rounded-lg font-medium transition-all',
-                  generationCount === count 
-                    ? 'bg-primary-500 text-white' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                ]"
-              >
-                {{ count }}张
-              </button>
-            </div>
+            <input
+              v-model.number="generationCount"
+              type="number"
+              min="1"
+              max="8"
+              class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="输入生成数量 (1-8)"
+            />
           </div>
 
-          <!-- Style Settings -->
-          <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">风格设置</h2>
-            <select 
-              v-model="selectedStyle"
-              class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option
-                v-for="style in styleOptions"
-                :key="style.value"
-                :value="style.value"
-              >
-                {{ style.label }}
-              </option>
-            </select>
-          </div>
 
           <!-- Prompt Templates -->
           <div class="mb-8">
@@ -370,7 +432,7 @@ onMounted(() => {
           <!-- Generate Button -->
           <button
             @click="generateImages"
-            :disabled="!selectedModel || (!selectedTop && !uploadedTop) || !customPrompt.trim() || isGenerating"
+            :disabled="(!selectedModel && !uploadedModel) || (!selectedTop && !uploadedTop) || !customPrompt.trim() || isGenerating"
             class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
           >
             <span v-if="isGenerating">生成中...</span>
@@ -422,11 +484,11 @@ onMounted(() => {
             <div class="bg-gray-800 p-4 rounded-lg">
               <h3 class="text-white font-medium mb-2">生成信息</h3>
               <div class="text-sm text-gray-400 space-y-1">
-                <p v-if="selectedModel">模特：{{ selectedModel.name }}</p>
+                <p v-if="selectedModel || uploadedModel">模特：{{ uploadedModel ? '上传的模特' : selectedModel.name }}</p>
                 <p v-if="selectedTop">上装：{{ selectedTop.name }}</p>
                 <p v-if="selectedBottom">下装：{{ selectedBottom.name }}</p>
+                <p v-if="selectedAccessory || uploadedAccessory">配饰：{{ uploadedAccessory ? '上传的配饰' : selectedAccessory.name }}</p>
                 <p v-if="selectedBackground">背景：{{ selectedBackground.name }}</p>
-                <p>风格：{{ styleOptions.find(s => s.value === selectedStyle)?.label }}</p>
                 <p v-if="customPrompt">Prompt：{{ customPrompt.length > 50 ? customPrompt.substring(0, 50) + '...' : customPrompt }}</p>
               </div>
             </div>

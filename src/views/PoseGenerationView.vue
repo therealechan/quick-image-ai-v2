@@ -10,7 +10,7 @@ const selectedPose = ref<any>(null)
 const uploadedModel = ref<string | null>(null)
 const generatedResults = ref<any[]>([])
 const isGenerating = ref(false)
-const generationCount = ref(2)
+const generationCount = ref(3)
 const selectedPromptTemplate = ref<any>(null)
 const customPrompt = ref('')
 
@@ -126,9 +126,42 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Pose Selection -->
+          <!-- Prompt Templates -->
           <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">选择参考姿势</h2>
+            <h2 class="text-lg font-semibold text-white mb-4">Prompt模板 <span class="text-red-400">*</span></h2>
+            
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <button
+                v-for="template in promptTemplates"
+                :key="template.id"
+                @click="selectPromptTemplate(template)"
+                :class="[
+                  'p-3 rounded-lg text-left transition-all border-2',
+                  selectedPromptTemplate?.id === template.id 
+                    ? 'border-primary-500 bg-primary-500/10 text-white' 
+                    : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600'
+                ]"
+              >
+                <div class="font-medium text-sm mb-1">{{ template.name }}</div>
+                <div class="text-xs text-gray-400 line-clamp-2">{{ template.prompt }}</div>
+              </button>
+            </div>
+
+            <!-- Custom Prompt -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">自定义Prompt</label>
+              <textarea
+                v-model="customPrompt"
+                placeholder="输入自定义的prompt描述..."
+                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none"
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Reference Pose Selection -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">参考姿势 <span class="text-gray-500">(可选)</span></h2>
             
             <div class="grid grid-cols-3 gap-4 mb-6">
               <div
@@ -162,60 +195,20 @@ onMounted(() => {
           <!-- Generation Count -->  
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">生成数量</h2>
-            <div class="flex space-x-3">
-              <button
-                v-for="count in [1, 2, 3, 4]"
-                :key="count"
-                @click="generationCount = count"
-                :class="[
-                  'px-4 py-2 rounded-lg font-medium transition-all',
-                  generationCount === count 
-                    ? 'bg-primary-500 text-white' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                ]"
-              >
-                {{ count }}张
-              </button>
-            </div>
-          </div>
-
-          <!-- Prompt Templates -->
-          <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">Prompt模板</h2>
-            
-            <div class="grid grid-cols-2 gap-3 mb-4">
-              <button
-                v-for="template in promptTemplates"
-                :key="template.id"
-                @click="selectPromptTemplate(template)"
-                :class="[
-                  'p-3 rounded-lg text-left transition-all border-2',
-                  selectedPromptTemplate?.id === template.id 
-                    ? 'border-primary-500 bg-primary-500/10 text-white' 
-                    : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600'
-                ]"
-              >
-                <div class="font-medium text-sm mb-1">{{ template.name }}</div>
-                <div class="text-xs text-gray-400 line-clamp-2">{{ template.prompt }}</div>
-              </button>
-            </div>
-
-            <!-- Custom Prompt -->
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">自定义Prompt</label>
-              <textarea
-                v-model="customPrompt"
-                placeholder="输入自定义的prompt描述..."
-                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none"
-                rows="3"
-              ></textarea>
-            </div>
+            <input
+              v-model.number="generationCount"
+              type="number"
+              min="1"
+              max="8"
+              class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="输入生成数量 (1-8)"
+            />
           </div>
 
           <!-- Generate Button -->
           <button
             @click="generatePoseImages"
-            :disabled="!uploadedModel || !selectedPose || !customPrompt.trim() || isGenerating"
+:disabled="!uploadedModel || !customPrompt.trim() || isGenerating"
             class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
           >
             <span v-if="isGenerating">生成中...</span>
@@ -224,6 +217,7 @@ onMounted(() => {
 
           <div class="mt-4 text-center">
             <p class="text-gray-500 text-sm">预计生成时间：2-3分钟</p>
+            <p class="text-gray-500 text-xs">必选：模特图、Prompt | 可选：参考姿势</p>
           </div>
         </div>
       </div>

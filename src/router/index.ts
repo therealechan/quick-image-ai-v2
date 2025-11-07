@@ -64,6 +64,11 @@ const router = createRouter({
       name: 'service-selector',
       component: () => import('../views/ServiceTypeSelector.vue')
     },
+    {
+      path: '/gallery',
+      name: 'gallery',
+      component: () => import('../views/GalleryView.vue')
+    },
   ],
 })
 

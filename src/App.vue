@@ -7,7 +7,7 @@ const route = useRoute()
 
 const showNavBar = computed(() => {
   // Hide NavBar for all authenticated/dashboard pages
-  const hiddenPaths = ['/dashboard', '/model-generation', '/pose-generation', '/upscale', '/projects']
+  const hiddenPaths = ['/dashboard', '/model-generation', '/pose-generation', '/upscale', '/gallery', '/projects']
   return !hiddenPaths.some(path => route.path.startsWith(path))
 })
 </script>
