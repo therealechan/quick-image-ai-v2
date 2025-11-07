@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
-import { Upload, Download, User, Camera, Palette, Sparkles } from 'lucide-vue-next'
+import { Upload, Download, Edit2, Check } from 'lucide-vue-next'
 
 const isMobileMenuOpen = ref(false)
 
-// Selection states
-const selectedTop = ref<any>(null)
-const selectedBottom = ref<any>(null)
-const selectedModel = ref<any>(null)
+// Selection states - Updated for multi-select
+const selectedTops = ref<any[]>([])
+const selectedBottoms = ref<any[]>([])
+const selectedModels = ref<any[]>([])
 const selectedBackground = ref<any>(null)
-const selectedAccessory = ref<any>(null)
+const selectedAccessories = ref<any[]>([])
+const selectedCombinations = ref<any[]>([]) // Generated combinations
+const showCombinationPreview = ref(false)
 const uploadedTop = ref<string | null>(null)
 const uploadedBottom = ref<string | null>(null)
 const uploadedModel = ref<string | null>(null)
@@ -20,6 +22,14 @@ const uploadedPose = ref<string | null>(null)
 const generatedResults = ref<any[]>([])
 const isGenerating = ref(false)
 const generationCount = ref(3)
+const batchMode = ref(false) // Toggle between single and batch mode
+
+// Result selection and editing states
+const selectedResults = ref<Set<string>>(new Set())
+const showEditModal = ref(false)
+const editingResults = ref<any[]>([])
+const editPrompt = ref('')
+const isRegenerating = ref(false)
 const selectedPromptTemplate = ref<any>(null)
 const customPrompt = ref('')
 
@@ -95,19 +105,59 @@ const closeMobileMenu = () => {
 }
 
 const selectTop = (item: any) => {
-  selectedTop.value = item
+  if (!batchMode.value) {
+    selectedTops.value = [item]
+    return
+  }
+  
+  const index = selectedTops.value.findIndex(top => top.id === item.id)
+  if (index > -1) {
+    selectedTops.value.splice(index, 1)
+  } else {
+    selectedTops.value.push(item)
+  }
 }
 
 const selectBottom = (item: any) => {
-  selectedBottom.value = item
+  if (!batchMode.value) {
+    selectedBottoms.value = [item]
+    return
+  }
+  
+  const index = selectedBottoms.value.findIndex(bottom => bottom.id === item.id)
+  if (index > -1) {
+    selectedBottoms.value.splice(index, 1)
+  } else {
+    selectedBottoms.value.push(item)
+  }
 }
 
 const selectModel = (model: any) => {
-  selectedModel.value = model
+  if (!batchMode.value) {
+    selectedModels.value = [model]
+    return
+  }
+  
+  const index = selectedModels.value.findIndex(m => m.id === model.id)
+  if (index > -1) {
+    selectedModels.value.splice(index, 1)
+  } else {
+    selectedModels.value.push(model)
+  }
 }
 
 const selectAccessory = (accessory: any) => {
-  selectedAccessory.value = accessory
+  if (!batchMode.value) {
+    selectedAccessories.value = [accessory]
+    return
+  }
+  
+  const index = selectedAccessories.value.findIndex(acc => acc.id === accessory.id)
+  if (index > -1) {
+    selectedAccessories.value.splice(index, 1)
+  } else {
+    selectedAccessories.value.push(accessory)
+  }
 }
 
 const selectBackground = (background: any) => {
@@ -143,13 +193,94 @@ const uploadPoseFile = () => {
   uploadedPose.value = 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=200&fit=crop'
 }
 
+// Computed property to group results by combination
+const groupedResults = computed(() => {
+  if (!batchMode.value || !generatedResults.value[0]?.combination) return []
+  
+  const grouped = new Map()
+  
+  generatedResults.value.forEach(result => {
+    const combinationId = result.combination.id
+    if (!grouped.has(combinationId)) {
+      grouped.set(combinationId, {
+        combination: result.combination,
+        images: []
+      })
+    }
+    grouped.get(combinationId).images.push(result)
+  })
+  
+  return Array.from(grouped.values())
+})
+
 const selectPromptTemplate = (template: any) => {
   selectedPromptTemplate.value = template
   customPrompt.value = template.prompt
 }
 
+// Generate outfit combinations
+const generateCombinations = () => {
+  const combinations = []
+  const models = selectedModels.value.length > 0 ? selectedModels.value : (uploadedModel.value ? [{ id: 'uploaded', name: '上传的模特', isUploaded: true }] : [])
+  const tops = selectedTops.value.length > 0 ? selectedTops.value : (uploadedTop.value ? [{ id: 'uploaded', name: '上传的上装', isUploaded: true }] : [])
+  const bottoms = selectedBottoms.value.length > 0 ? selectedBottoms.value : (uploadedBottom.value ? [{ id: 'uploaded', name: '上传的下装', isUploaded: true }] : [])
+  
+  for (const model of models) {
+    for (const top of tops) {
+      for (const bottom of bottoms) {
+        combinations.push({
+          id: `${model.id}-${top.id}-${bottom.id}`,
+          model,
+          top,
+          bottom,
+          accessory: selectedAccessories.value[0] || null,
+          name: `${model.name} + ${top.name} + ${bottom.name}`,
+          selected: true
+        })
+      }
+    }
+  }
+  
+  return combinations
+}
+
+const previewCombinations = () => {
+  if ((selectedModels.value.length === 0 && !uploadedModel.value)) {
+    alert('请先选择模特')
+    return
+  }
+  
+  if ((selectedTops.value.length === 0 && !uploadedTop.value) || (selectedBottoms.value.length === 0 && !uploadedBottom.value)) {
+    alert('请选择至少一个上装和一个下装')
+    return
+  }
+  
+  selectedCombinations.value = generateCombinations()
+  showCombinationPreview.value = true
+}
+
+const toggleCombinationSelection = (combination: any) => {
+  combination.selected = !combination.selected
+}
+
+const selectAllCombinations = () => {
+  selectedCombinations.value.forEach(combo => combo.selected = true)
+}
+
+const deselectAllCombinations = () => {
+  selectedCombinations.value.forEach(combo => combo.selected = false)
+}
+
 const generateImages = () => {
-  if ((!selectedModel.value && !uploadedModel.value) || (!selectedTop.value && !uploadedTop.value) || !customPrompt.value.trim()) {
+  if (batchMode.value) {
+    generateBatchImages()
+  } else {
+    generateSingleImage()
+  }
+}
+
+const generateSingleImage = () => {
+  if ((selectedModels.value.length === 0 && !uploadedModel.value) || (selectedTops.value.length === 0 && !uploadedTop.value) || !customPrompt.value.trim()) {
     alert('请选择模特、上装和prompt')
     return
   }
@@ -171,13 +302,182 @@ const generateImages = () => {
       id: String(index + 1),
       url: mockImages[index % mockImages.length],
       config: { 
-        model: uploadedModel.value ? '上传的模特' : selectedModel.value.name, 
- 
+        model: uploadedModel.value ? '上传的模特' : selectedModels.value[0]?.name,
+        top: selectedTops.value[0]?.name || '上传的上装',
+        bottom: selectedBottoms.value[0]?.name || '上传的下装',
         prompt: customPrompt.value.substring(0, 50) + '...'
       }
     }))
     isGenerating.value = false
   }, 4000)
+}
+
+const generateBatchImages = () => {
+  const selectedCombos = selectedCombinations.value.filter(combo => combo.selected)
+  
+  if (selectedCombos.length === 0) {
+    alert('请选择至少一个搭配组合')
+    return
+  }
+  
+  isGenerating.value = true
+  showCombinationPreview.value = false
+  
+  // 模拟批量生成过程
+  setTimeout(() => {
+    const mockImages = [
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=600&fit=crop'
+    ]
+    
+    const results: any[] = []
+    selectedCombos.forEach((combo, comboIndex) => {
+      for (let i = 0; i < generationCount.value; i++) {
+        results.push({
+          id: `${combo.id}-${i + 1}`,
+          url: mockImages[(comboIndex * generationCount.value + i) % mockImages.length],
+          combination: combo,
+          config: {
+            model: uploadedModel.value ? '上传的模特' : selectedModels.value[0]?.name,
+            top: combo.top.name,
+            bottom: combo.bottom.name,
+            accessory: combo.accessory?.name || null,
+            prompt: customPrompt.value.substring(0, 50) + '...'
+          }
+        })
+      }
+    })
+    
+    generatedResults.value = results
+    isGenerating.value = false
+  }, 6000)
+}
+
+// Result selection functions
+const toggleResultSelection = (resultId: string) => {
+  if (selectedResults.value.has(resultId)) {
+    selectedResults.value.delete(resultId)
+  } else {
+    selectedResults.value.add(resultId)
+  }
+}
+
+const selectAllResults = () => {
+  selectedResults.value.clear()
+  generatedResults.value.forEach(result => {
+    selectedResults.value.add(result.id)
+  })
+}
+
+const deselectAllResults = () => {
+  selectedResults.value.clear()
+}
+
+// Download functions
+const downloadSingleResult = async (result: any) => {
+  try {
+    const response = await fetch(result.url)
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `generated-${result.id}.jpg`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Download failed:', error)
+    alert('下载失败，请重试')
+  }
+}
+
+const downloadSelectedResults = async () => {
+  const selectedResultsList = generatedResults.value.filter(result => 
+    selectedResults.value.has(result.id)
+  )
+  
+  if (selectedResultsList.length === 0) {
+    alert('请先选择要下载的结果')
+    return
+  }
+
+  // For simplicity, download each file individually
+  // In a real app, you might want to create a ZIP file
+  for (const result of selectedResultsList) {
+    await downloadSingleResult(result)
+    // Add small delay between downloads
+    await new Promise(resolve => setTimeout(resolve, 200))
+  }
+}
+
+// Edit functions
+const editSingleResult = (result: any) => {
+  editingResults.value = [result]
+  editPrompt.value = result.config?.prompt || customPrompt.value
+  showEditModal.value = true
+}
+
+const editSelectedResults = () => {
+  const selectedResultsList = generatedResults.value.filter(result => 
+    selectedResults.value.has(result.id)
+  )
+  
+  if (selectedResultsList.length === 0) {
+    alert('请先选择要编辑的结果')
+    return
+  }
+
+  editingResults.value = selectedResultsList
+  // Use the first result's prompt or the original custom prompt
+  editPrompt.value = selectedResultsList[0].config?.prompt || customPrompt.value
+  showEditModal.value = true
+}
+
+const regenerateWithEdit = async () => {
+  if (!editPrompt.value.trim()) {
+    alert('请输入编辑prompt')
+    return
+  }
+
+  isRegenerating.value = true
+  showEditModal.value = false
+
+  // Simulate regeneration process
+  setTimeout(() => {
+    const mockImages = [
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop'
+    ]
+
+    // Update each editing result with new version
+    editingResults.value.forEach((editResult, index) => {
+      const resultIndex = generatedResults.value.findIndex(r => r.id === editResult.id)
+      if (resultIndex !== -1) {
+        // Keep original data and update with edited version
+        generatedResults.value[resultIndex] = {
+          ...editResult,
+          url: mockImages[index % mockImages.length],
+          config: {
+            ...editResult.config,
+            prompt: editPrompt.value,
+            editedAt: new Date().toLocaleString()
+          },
+          isEdited: true
+        }
+      }
+    })
+
+    isRegenerating.value = false
+    editingResults.value = []
+    editPrompt.value = ''
+  }, 3000)
 }
 
 onMounted(() => {
@@ -203,19 +503,51 @@ onMounted(() => {
           <div class="mb-6">
             <h1 class="text-2xl font-bold text-white mb-2">模特图生成</h1>
             <p class="text-gray-400 text-sm">选择模特、服装搭配和背景，生成完整的模特展示图</p>
+            
+            <!-- Batch Mode Toggle -->
+            <div class="mt-4 flex items-center space-x-3">
+              <span class="text-gray-300 text-sm">生成模式:</span>
+              <button
+                @click="batchMode = false"
+                :class="[
+                  'px-3 py-1 rounded-md text-xs font-medium transition-all',
+                  !batchMode ? 'bg-primary-500 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ]"
+              >
+                单搭配
+              </button>
+              <button
+                @click="batchMode = true"
+                :class="[
+                  'px-3 py-1 rounded-md text-xs font-medium transition-all',
+                  batchMode ? 'bg-primary-500 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ]"
+              >
+                批量搭配
+              </button>
+            </div>
+            
+            <div v-if="batchMode" class="mt-2 text-xs text-primary-400">
+              批量模式：选择多个服装生成所有搭配组合
+            </div>
           </div>
 
           <!-- Model Selection -->
           <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">选择模特</h2>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-white">选择模特</h2>
+              <div v-if="batchMode && selectedModels.length > 0" class="text-xs text-primary-400">
+                已选择 {{ selectedModels.length }} 位
+              </div>
+            </div>
             <div class="grid grid-cols-3 gap-3">
               <div
                 v-for="model in modelOptions"
                 :key="model.id"
                 @click="selectModel(model)"
                 :class="[
-                  'aspect-[3/4] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  selectedModel?.id === model.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                  'relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  (batchMode ? selectedModels.some(m => m.id === model.id) : selectedModels[0]?.id === model.id) ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -223,6 +555,25 @@ onMounted(() => {
                   :alt="model.name"
                   class="w-full h-full object-cover"
                 />
+                <!-- Multi-select checkbox for batch mode -->
+                <div v-if="batchMode" class="absolute top-2 right-2">
+                  <div 
+                    :class="[
+                      'w-5 h-5 rounded border-2 flex items-center justify-center',
+                      selectedModels.some(m => m.id === model.id) 
+                        ? 'bg-primary-500 border-primary-500' 
+                        : 'bg-gray-800 border-gray-600'
+                    ]"
+                  >
+                    <svg v-if="selectedModels.some(m => m.id === model.id)" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+                <!-- Model name overlay -->
+                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 text-center">
+                  {{ model.name }}
+                </div>
               </div>
             </div>
             
@@ -240,22 +591,29 @@ onMounted(() => {
               <p class="text-green-400 text-sm text-center">模特图上传成功</p>
             </div>
             
-            <div v-else-if="selectedModel" class="mt-3 text-center">
-              <span class="text-primary-400 text-sm">已选择: {{ selectedModel.name }}</span>
+            <div v-else-if="selectedModels.length > 0" class="mt-3 text-center">
+              <span class="text-primary-400 text-sm">
+                已选择: {{ batchMode ? `${selectedModels.length} 位模特` : selectedModels[0]?.name }}
+              </span>
             </div>
           </div>
 
           <!-- Top Clothing Selection -->
           <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">选择上装</h2>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-white">选择上装</h2>
+              <div v-if="batchMode && selectedTops.length > 0" class="text-xs text-primary-400">
+                已选择 {{ selectedTops.length }} 件
+              </div>
+            </div>
             <div class="grid grid-cols-3 gap-3 mb-4">
               <div
                 v-for="item in topClothingItems"
                 :key="item.id"
                 @click="selectTop(item)"
                 :class="[
-                  'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  selectedTop?.id === item.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                  'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  (batchMode ? selectedTops.some(top => top.id === item.id) : selectedTops[0]?.id === item.id) ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -263,6 +621,25 @@ onMounted(() => {
                   :alt="item.name"
                   class="w-full h-full object-cover"
                 />
+                <!-- Multi-select checkbox for batch mode -->
+                <div v-if="batchMode" class="absolute top-2 right-2">
+                  <div 
+                    :class="[
+                      'w-5 h-5 rounded border-2 flex items-center justify-center',
+                      selectedTops.some(top => top.id === item.id) 
+                        ? 'bg-primary-500 border-primary-500' 
+                        : 'bg-gray-800 border-gray-600'
+                    ]"
+                  >
+                    <svg v-if="selectedTops.some(top => top.id === item.id)" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+                <!-- Item name overlay -->
+                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 text-center">
+                  {{ item.name }}
+                </div>
               </div>
             </div>
             
@@ -283,15 +660,20 @@ onMounted(() => {
 
           <!-- Bottom Clothing Selection -->
           <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">选择下装</h2>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-white">选择下装</h2>
+              <div v-if="batchMode && selectedBottoms.length > 0" class="text-xs text-primary-400">
+                已选择 {{ selectedBottoms.length }} 件
+              </div>
+            </div>
             <div class="grid grid-cols-3 gap-3 mb-4">
               <div
                 v-for="item in bottomClothingItems"
                 :key="item.id"
                 @click="selectBottom(item)"
                 :class="[
-                  'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  selectedBottom?.id === item.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                  'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  (batchMode ? selectedBottoms.some(bottom => bottom.id === item.id) : selectedBottoms[0]?.id === item.id) ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -299,6 +681,25 @@ onMounted(() => {
                   :alt="item.name"
                   class="w-full h-full object-cover"
                 />
+                <!-- Multi-select checkbox for batch mode -->
+                <div v-if="batchMode" class="absolute top-2 right-2">
+                  <div 
+                    :class="[
+                      'w-5 h-5 rounded border-2 flex items-center justify-center',
+                      selectedBottoms.some(bottom => bottom.id === item.id) 
+                        ? 'bg-primary-500 border-primary-500' 
+                        : 'bg-gray-800 border-gray-600'
+                    ]"
+                  >
+                    <svg v-if="selectedBottoms.some(bottom => bottom.id === item.id)" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+                <!-- Item name overlay -->
+                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 text-center">
+                  {{ item.name }}
+                </div>
               </div>
             </div>
             
@@ -327,7 +728,7 @@ onMounted(() => {
                 @click="selectAccessory(accessory)"
                 :class="[
                   'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  selectedAccessory?.id === accessory.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                  (batchMode ? selectedAccessories.some(acc => acc.id === accessory.id) : selectedAccessories[0]?.id === accessory.id) ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -352,8 +753,8 @@ onMounted(() => {
               <p class="text-green-400 text-sm text-center">配饰上传成功</p>
             </div>
             
-            <div v-else-if="selectedAccessory" class="mt-3 text-center">
-              <span class="text-primary-400 text-sm">已选择: {{ selectedAccessory.name }}</span>
+            <div v-else-if="selectedAccessories.length > 0" class="mt-3 text-center">
+              <span class="text-primary-400 text-sm">已选择: {{ batchMode ? `${selectedAccessories.length} 个配饰` : selectedAccessories[0]?.name }}</span>
             </div>
           </div>
 
@@ -429,19 +830,40 @@ onMounted(() => {
             </div>
           </div>
 
+          <!-- Combination Preview Button (Batch Mode) -->
+          <div v-if="batchMode" class="mb-4">
+            <button
+              @click="previewCombinations"
+              :disabled="(selectedModels.length === 0 && !uploadedModel) || (selectedTops.length === 0 && !uploadedTop) || (selectedBottoms.length === 0 && !uploadedBottom)"
+              class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed mb-3"
+            >
+              预览搭配组合 ({{ (selectedModels.length || (uploadedModel ? 1 : 0)) * (selectedTops.length || (uploadedTop ? 1 : 0)) * (selectedBottoms.length || (uploadedBottom ? 1 : 0)) }} 个)
+            </button>
+            <div class="text-center text-xs text-gray-500">
+              先预览所有搭配组合，然后选择要生成的搭配
+            </div>
+          </div>
+
           <!-- Generate Button -->
           <button
             @click="generateImages"
-            :disabled="(!selectedModel && !uploadedModel) || (!selectedTop && !uploadedTop) || !customPrompt.trim() || isGenerating"
+            :disabled="(selectedModels.length === 0 && !uploadedModel) || (selectedTops.length === 0 && !uploadedTop) || !customPrompt.trim() || isGenerating || (batchMode && selectedCombinations.filter(c => c.selected).length === 0)"
             class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
           >
             <span v-if="isGenerating">生成中...</span>
+            <span v-else-if="batchMode">
+              批量生成 ({{ selectedCombinations.filter(c => c.selected).length * generationCount }} 张图片)
+            </span>
             <span v-else>生成 {{ generationCount }} 张模特图</span>
           </button>
 
           <div class="mt-4 text-center">
-            <p class="text-gray-500 text-sm">预计生成时间：3-5分钟</p>
-            <p class="text-gray-500 text-xs">需要选择模特、上装和prompt</p>
+            <p class="text-gray-500 text-sm">
+              预计生成时间：{{ batchMode ? '5-10分钟' : '3-5分钟' }}
+            </p>
+            <p class="text-gray-500 text-xs">
+              {{ batchMode ? '批量模式：需要选择模特、多个服装并预览组合' : '需要选择模特、上装和prompt' }}
+            </p>
           </div>
         </div>
       </div>
@@ -450,7 +872,13 @@ onMounted(() => {
       <div class="hidden lg:block w-1/2 bg-gray-900 p-6 overflow-y-auto">
         <div class="max-w-lg mx-auto">
           <div class="mb-6">
-            <h2 class="text-lg font-semibold text-white mb-4">生成结果</h2>
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold text-white">生成结果</h2>
+              <div v-if="generatedResults.length > 0" class="text-xs text-gray-400">
+                {{ generatedResults.length }} 张图片
+              </div>
+            </div>
+
           </div>
 
           <div v-if="isGenerating" class="text-center py-16">
@@ -459,22 +887,133 @@ onMounted(() => {
           </div>
 
           <div v-else-if="generatedResults.length > 0" class="space-y-6">
-            <div class="grid grid-cols-2 gap-4">
-              <div
-                v-for="result in generatedResults"
-                :key="result.id"
-                class="relative group"
-              >
-                <img
-                  :src="result.url"
-                  :alt="`Generated result ${result.id}`"
-                  class="w-full aspect-[3/4] object-cover rounded-lg"
-                />
-                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg">
-                  <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button class="p-2 bg-white rounded-full text-gray-900 hover:bg-gray-100">
-                      <Download class="h-4 w-4" />
-                    </button>
+            <!-- Batch Results (Grouped by Combination) -->
+            <div v-if="batchMode && generatedResults[0]?.combination">
+              <div v-for="(group, index) in groupedResults" :key="index" class="mb-8">
+                <div class="mb-4 p-3 bg-gray-800 rounded-lg">
+                  <h4 class="text-white font-medium">{{ group.combination.name }}</h4>
+                  <div class="text-xs text-gray-400 mt-1">
+                    {{ group.images.length }} 张图片
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                  <div
+                    v-for="result in group.images"
+                    :key="result.id"
+                    @click="toggleResultSelection(result.id)"
+                    :class="[
+                      'relative group cursor-pointer transition-all',
+                      selectedResults.has(result.id) ? 'ring-2 ring-primary-500 rounded-lg' : ''
+                    ]"
+                  >
+                    <img
+                      :src="result.url"
+                      :alt="`Generated result ${result.id}`"
+                      class="w-full aspect-[3/4] object-cover rounded-lg"
+                    />
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg">
+                      <!-- Selection Checkbox -->
+                      <div class="absolute top-2 right-2">
+                        <div 
+                          :class="[
+                            'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
+                            selectedResults.has(result.id) 
+                              ? 'bg-primary-500 border-primary-500' 
+                              : 'bg-gray-800 border-gray-600 opacity-60 group-hover:opacity-100'
+                          ]"
+                        >
+                          <Check v-if="selectedResults.has(result.id)" class="w-3 h-3 text-white" />
+                        </div>
+                      </div>
+                      
+                      <!-- Action buttons -->
+                      <div class="absolute bottom-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          @click.stop="editSingleResult(result)"
+                          class="p-2 bg-green-500 rounded-full text-white hover:bg-green-400 transition-colors"
+                        >
+                          <Edit2 class="h-3 w-3" />
+                        </button>
+                        <button 
+                          @click.stop="downloadSingleResult(result)"
+                          class="p-2 bg-blue-500 rounded-full text-white hover:bg-blue-400 transition-colors"
+                        >
+                          <Download class="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <!-- Combination label -->
+                    <div class="absolute top-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                      {{ result.combination.name }}
+                    </div>
+                    
+                    <!-- Edited indicator -->
+                    <div v-if="result.isEdited" class="absolute bottom-2 left-2">
+                      <div class="bg-green-500 text-white text-xs px-2 py-1 rounded">
+                        已编辑
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Single Mode Results -->
+            <div v-else>
+              <div class="grid grid-cols-2 gap-4">
+                <div
+                  v-for="result in generatedResults"
+                  :key="result.id"
+                  @click="toggleResultSelection(result.id)"
+                  :class="[
+                    'relative group cursor-pointer transition-all',
+                    selectedResults.has(result.id) ? 'ring-2 ring-primary-500 rounded-lg' : ''
+                  ]"
+                >
+                  <img
+                    :src="result.url"
+                    :alt="`Generated result ${result.id}`"
+                    class="w-full aspect-[3/4] object-cover rounded-lg"
+                  />
+                  <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg">
+                    <!-- Selection Checkbox -->
+                    <div class="absolute top-2 right-2">
+                      <div 
+                        :class="[
+                          'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
+                          selectedResults.has(result.id) 
+                            ? 'bg-primary-500 border-primary-500' 
+                            : 'bg-gray-800 border-gray-600 opacity-60 group-hover:opacity-100'
+                        ]"
+                      >
+                        <Check v-if="selectedResults.has(result.id)" class="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+                    
+                    <!-- Action buttons -->
+                    <div class="absolute bottom-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        @click.stop="editSingleResult(result)"
+                        class="p-2 bg-green-500 rounded-full text-white hover:bg-green-400 transition-colors"
+                      >
+                        <Edit2 class="h-3 w-3" />
+                      </button>
+                      <button 
+                        @click.stop="downloadSingleResult(result)"
+                        class="p-2 bg-blue-500 rounded-full text-white hover:bg-blue-400 transition-colors"
+                      >
+                        <Download class="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Edited indicator -->
+                  <div v-if="result.isEdited" class="absolute top-2 left-2">
+                    <div class="bg-green-500 text-white text-xs px-2 py-1 rounded">
+                      已编辑
+                    </div>
                   </div>
                 </div>
               </div>
@@ -484,10 +1023,12 @@ onMounted(() => {
             <div class="bg-gray-800 p-4 rounded-lg">
               <h3 class="text-white font-medium mb-2">生成信息</h3>
               <div class="text-sm text-gray-400 space-y-1">
-                <p v-if="selectedModel || uploadedModel">模特：{{ uploadedModel ? '上传的模特' : selectedModel.name }}</p>
-                <p v-if="selectedTop">上装：{{ selectedTop.name }}</p>
-                <p v-if="selectedBottom">下装：{{ selectedBottom.name }}</p>
-                <p v-if="selectedAccessory || uploadedAccessory">配饰：{{ uploadedAccessory ? '上传的配饰' : selectedAccessory.name }}</p>
+                <p v-if="selectedModels.length > 0 || uploadedModel">模特：{{ uploadedModel ? '上传的模特' : (batchMode ? `${selectedModels.length} 位模特` : selectedModels[0]?.name) }}</p>
+                <p v-if="!batchMode && (selectedTops[0] || uploadedTop)">上装：{{ selectedTops[0]?.name || '上传的上装' }}</p>
+                <p v-if="!batchMode && (selectedBottoms[0] || uploadedBottom)">下装：{{ selectedBottoms[0]?.name || '上传的下装' }}</p>
+                <p v-if="batchMode">搭配数量：{{ new Set(generatedResults.map(r => r.combination?.id)).size }} 个</p>
+                <p v-if="batchMode">总图片数：{{ generatedResults.length }} 张</p>
+                <p v-if="selectedAccessories[0] || uploadedAccessory">配饰：{{ uploadedAccessory ? '上传的配饰' : selectedAccessories[0]?.name }}</p>
                 <p v-if="selectedBackground">背景：{{ selectedBackground.name }}</p>
                 <p v-if="customPrompt">Prompt：{{ customPrompt.length > 50 ? customPrompt.substring(0, 50) + '...' : customPrompt }}</p>
               </div>
@@ -516,6 +1057,342 @@ onMounted(() => {
         </div>
       </div>
     </main>
+
+    <!-- Combination Preview Modal -->
+    <div 
+      v-if="showCombinationPreview" 
+      class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
+      @click.self="showCombinationPreview = false"
+    >
+      <div class="bg-gray-900 rounded-lg p-8 w-[80vw] h-[80vh] overflow-y-auto mx-4">
+        <div class="flex justify-between items-center mb-8">
+          <div>
+            <h3 class="text-2xl font-bold text-white">搭配组合预览</h3>
+            <p class="text-gray-400 text-base mt-2">选择要生成的搭配组合 · 共 {{ selectedCombinations.length }} 个组合</p>
+          </div>
+          <button
+            @click="showCombinationPreview = false"
+            class="text-gray-400 hover:text-white p-3 rounded-full hover:bg-gray-700 transition-colors"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Batch Actions -->
+        <div class="flex justify-between items-center mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+          <div class="flex space-x-3">
+            <button
+              @click="selectAllCombinations"
+              class="px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white text-sm rounded-lg font-medium transition-colors"
+            >
+              全选
+            </button>
+            <button
+              @click="deselectAllCombinations"
+              class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-lg font-medium transition-colors"
+            >
+              全不选
+            </button>
+          </div>
+          <div class="text-sm text-gray-300 font-medium">
+            已选择: <span class="text-primary-400">{{ selectedCombinations.filter(c => c.selected).length }}</span> / {{ selectedCombinations.length }}
+          </div>
+        </div>
+
+        <!-- Combinations Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-6">
+          <div
+            v-for="(combination, index) in selectedCombinations"
+            :key="combination.id"
+            @click="toggleCombinationSelection(combination)"
+            :class="[
+              'border-2 rounded-lg p-4 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1',
+              combination.selected 
+                ? 'border-primary-500 bg-primary-500/10 shadow-primary-500/20' 
+                : [
+                    'border-gray-700 hover:border-gray-500',
+                    index % 2 === 0 ? 'bg-gray-800/50' : 'bg-gray-700/30'
+                  ]
+            ]"
+          >
+            <!-- Header with combination name and selection -->
+            <div class="flex justify-between items-center mb-3">
+              <div>
+                <h5 class="text-white font-medium text-sm">组合 {{ index + 1 }}</h5>
+                <p class="text-xs text-gray-400">{{ combination.name }}</p>
+              </div>
+              <div 
+                :class="[
+                  'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all',
+                  combination.selected 
+                    ? 'bg-primary-500 border-primary-500 shadow-lg' 
+                    : 'bg-gray-700 border-gray-600'
+                ]"
+              >
+                <Check v-if="combination.selected" class="w-4 h-4 text-white" />
+              </div>
+            </div>
+
+            <!-- Horizontal Combination Preview -->
+            <div class="flex items-center space-x-3">
+              <!-- Model -->
+              <div class="flex-shrink-0">
+                <img
+                  :src="combination.model.isUploaded ? uploadedModel : combination.model.thumbnail"
+                  :alt="combination.model.name"
+                  class="w-12 h-12 object-cover rounded-lg border border-gray-600"
+                />
+                <p class="text-xs text-gray-400 mt-1 text-center truncate w-12">模特</p>
+              </div>
+              
+              <!-- Plus -->
+              <div class="text-gray-500 text-lg font-medium">+</div>
+              
+              <!-- Top Item -->
+              <div class="flex-shrink-0">
+                <img
+                  :src="combination.top.isUploaded ? uploadedTop : combination.top.thumbnail"
+                  :alt="combination.top.name"
+                  class="w-12 h-12 object-cover rounded-lg border border-gray-600"
+                />
+                <p class="text-xs text-gray-400 mt-1 text-center truncate w-12">上装</p>
+              </div>
+              
+              <!-- Plus -->
+              <div class="text-gray-500 text-lg font-medium">+</div>
+              
+              <!-- Bottom Item -->
+              <div class="flex-shrink-0">
+                <img
+                  :src="combination.bottom.isUploaded ? uploadedBottom : combination.bottom.thumbnail"
+                  :alt="combination.bottom.name"
+                  class="w-12 h-12 object-cover rounded-lg border border-gray-600"
+                />
+                <p class="text-xs text-gray-400 mt-1 text-center truncate w-12">下装</p>
+              </div>
+            </div>
+
+            <!-- Item names -->
+            <div class="mt-3 space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500">模特:</span>
+                <span class="text-gray-300 truncate ml-2">{{ combination.model.name }}</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500">上装:</span>
+                <span class="text-gray-300 truncate ml-2">{{ combination.top.name }}</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500">下装:</span>
+                <span class="text-gray-300 truncate ml-2">{{ combination.bottom.name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="border-t border-gray-700 pt-6 mt-6">
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <button
+              @click="showCombinationPreview = false"
+              class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+            >
+              取消
+            </button>
+            
+            <div class="text-center">
+              <div class="text-lg text-gray-200 font-medium">
+                将生成 {{ selectedCombinations.filter(c => c.selected).length * generationCount }} 张图片
+              </div>
+              <div class="text-sm text-gray-500 mt-1">
+                {{ selectedCombinations.filter(c => c.selected).length }} 个搭配 × {{ generationCount }} 张/搭配
+              </div>
+            </div>
+            
+            <button
+              @click="generateImages"
+              :disabled="selectedCombinations.filter(c => c.selected).length === 0"
+              class="px-6 py-3 bg-primary-500 hover:bg-primary-400 disabled:bg-gray-700 text-white rounded-lg disabled:cursor-not-allowed font-medium transition-colors"
+            >
+              生成选中的搭配
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fixed Floating Action Toolbar (shown when results are selected) -->
+    <div 
+      v-if="selectedResults.size > 0" 
+      class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-gray-800 border border-primary-500 rounded-lg shadow-lg p-4 max-w-md w-full mx-4"
+    >
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-white text-sm font-medium">
+          已选择 {{ selectedResults.size }} 张图片
+        </span>
+        <div class="flex space-x-2">
+          <button
+            @click="selectAllResults"
+            class="text-xs text-primary-400 hover:text-primary-300 transition-colors"
+          >
+            全选
+          </button>
+          <button
+            @click="deselectAllResults"
+            class="text-xs text-gray-400 hover:text-gray-300 transition-colors"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+      
+      <div class="flex space-x-2">
+        <button
+          @click="downloadSelectedResults"
+          class="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded transition-colors"
+        >
+          <Download class="h-3 w-3" />
+          <span>批量下载</span>
+        </button>
+        <button
+          @click="editSelectedResults"
+          class="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs rounded transition-colors"
+        >
+          <Edit2 class="h-3 w-3" />
+          <span>批量编辑</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div 
+      v-if="showEditModal" 
+      class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
+      @click.self="showEditModal = false"
+    >
+      <div class="bg-gray-900 rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[85vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h3 class="text-xl font-bold text-white">编辑 Prompt</h3>
+            <p class="text-gray-400 text-sm mt-1">
+              {{ editingResults.length === 1 ? '编辑单个结果' : `批量编辑 ${editingResults.length} 个结果` }}
+            </p>
+          </div>
+          <button
+            @click="showEditModal = false"
+            class="text-gray-400 hover:text-white p-2"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Preview of images being edited -->
+        <div v-if="editingResults.length > 0" class="mb-8">
+          <h4 class="text-white font-medium mb-4">待编辑的图片 ({{ editingResults.length }} 张)</h4>
+          <div 
+            :class="[
+              'grid gap-3',
+              editingResults.length <= 6 ? 'grid-cols-6' : 
+              editingResults.length <= 8 ? 'grid-cols-8' : 
+              'grid-cols-10'
+            ]"
+          >
+            <div
+              v-for="result in editingResults"
+              :key="result.id"
+              class="relative aspect-[3/4] rounded-lg overflow-hidden"
+            >
+              <img
+                :src="result.url"
+                :alt="`Edit ${result.id}`"
+                class="w-full h-full object-cover"
+              />
+              <div class="absolute inset-0 bg-primary-500 bg-opacity-20"></div>
+              <!-- Result ID -->
+              <div class="absolute bottom-1 left-1 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 rounded">
+                #{{ result.id }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prompt Comparison Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <!-- Current prompt -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-3">
+              当前 Prompt
+            </label>
+            <div class="p-4 bg-gray-800 rounded-lg text-gray-400 text-sm min-h-[120px] border border-gray-700">
+              {{ editingResults[0]?.config?.prompt || '无原始prompt' }}
+            </div>
+          </div>
+
+          <!-- Edit prompt -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-3">
+              新 Prompt *
+            </label>
+            <textarea
+              v-model="editPrompt"
+              placeholder="输入修改后的prompt描述..."
+              class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none min-h-[120px]"
+              rows="5"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Edit Info -->
+        <div class="mb-6 text-center">
+          <p class="text-sm text-gray-400">
+            {{ editingResults.length > 1 ? `此prompt将应用于所有选中的 ${editingResults.length} 张图片` : '修改后将重新生成此图片' }}
+          </p>
+        </div>
+
+
+        <!-- Modal Actions -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-700">
+          <button
+            @click="showEditModal = false"
+            class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            取消
+          </button>
+          
+          <div class="text-center">
+            <div class="text-lg text-gray-300 font-medium">
+              {{ editingResults.length > 1 ? `将重新生成 ${editingResults.length} 张图片` : '将重新生成 1 张图片' }}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">
+              预计时间：{{ editingResults.length * 0.5 }} 分钟
+            </div>
+          </div>
+          
+          <button
+            @click="regenerateWithEdit"
+            :disabled="!editPrompt.trim() || isRegenerating"
+            class="px-6 py-3 bg-primary-500 hover:bg-primary-400 disabled:bg-gray-700 text-white rounded-lg disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            {{ isRegenerating ? '生成中...' : '重新生成' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Regeneration Progress -->
+    <div v-if="isRegenerating" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div class="bg-gray-900 rounded-lg p-6 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+        <h3 class="text-white font-medium mb-2">正在重新生成</h3>
+        <p class="text-gray-400 text-sm">
+          正在根据新prompt生成 {{ editingResults.length }} 张图片...
+        </p>
+      </div>
+    </div>
   </div>
 </template>
 
