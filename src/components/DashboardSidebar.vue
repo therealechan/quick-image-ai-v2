@@ -11,9 +11,7 @@ import {
   CreditCard, 
   LogOut, 
   Sparkles,
-  X,
-  ChevronLeft,
-  ChevronRight
+  X
 } from 'lucide-vue-next'
 
 interface SidebarProps {
@@ -179,8 +177,6 @@ const goToHome = () => {
           @click="toggleCollapse"
           class="hidden lg:block p-2 text-gray-400 hover:text-white"
         >
-          <ChevronLeft v-if="!isCollapsed" class="w-5 h-5" />
-          <ChevronRight v-else class="w-5 h-5" />
         </button>
         
         <!-- Mobile close button -->

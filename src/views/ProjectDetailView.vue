@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
+import GenerationHistory from '../components/GenerationHistory.vue'
 import { Upload, Download, Edit2, Check } from 'lucide-vue-next'
 
 const isMobileMenuOpen = ref(false)
+
+// History panel state
+const isHistoryCollapsed = ref(false)
+const historyRef = ref<InstanceType<typeof GenerationHistory>>()
 
 // Selection states - Updated for multi-select
 const selectedTops = ref<any[]>([])
@@ -308,6 +313,10 @@ const generateSingleImage = () => {
         prompt: customPrompt.value.substring(0, 50) + '...'
       }
     }))
+    
+    // Save to history
+    saveToHistory()
+    
     isGenerating.value = false
   }, 4000)
 }
@@ -353,6 +362,10 @@ const generateBatchImages = () => {
     })
     
     generatedResults.value = results
+    
+    // Save to history  
+    saveToHistory()
+    
     isGenerating.value = false
   }, 6000)
 }
@@ -480,6 +493,107 @@ const regenerateWithEdit = async () => {
   }, 3000)
 }
 
+// History functions
+const saveToHistory = () => {
+  if (!historyRef.value) return
+  
+  const currentModels = [...selectedModels.value]
+  if (uploadedModel.value) {
+    currentModels.push({
+      id: 'uploaded',
+      name: '上传的模特',
+      thumbnail: uploadedModel.value
+    })
+  }
+  
+  const currentTops = [...selectedTops.value]
+  if (uploadedTop.value) {
+    currentTops.push({
+      id: 'uploaded',
+      name: '上传的上衣',
+      thumbnail: uploadedTop.value
+    })
+  }
+  
+  const currentBottoms = [...selectedBottoms.value] 
+  if (uploadedBottom.value) {
+    currentBottoms.push({
+      id: 'uploaded', 
+      name: '上传的下装',
+      thumbnail: uploadedBottom.value
+    })
+  }
+  
+  const currentAccessories = [...selectedAccessories.value]
+  if (uploadedAccessory.value) {
+    currentAccessories.push({
+      id: 'uploaded',
+      name: '上传的配饰', 
+      thumbnail: uploadedAccessory.value
+    })
+  }
+  
+  historyRef.value.addHistoryItem({
+    models: currentModels,
+    tops: currentTops,
+    bottoms: currentBottoms,
+    accessories: currentAccessories,
+    background: selectedBackground.value,
+    prompt: customPrompt.value,
+    results: generatedResults.value,
+    batchMode: batchMode.value
+  })
+}
+
+const useHistoryItem = (item: any) => {
+  // Clear current selections
+  selectedModels.value = []
+  selectedTops.value = []
+  selectedBottoms.value = []
+  selectedAccessories.value = []
+  uploadedModel.value = null
+  uploadedTop.value = null
+  uploadedBottom.value = null
+  uploadedAccessory.value = null
+  
+  // Restore selections from history
+  selectedModels.value = item.models.filter((m: any) => m.id !== 'uploaded')
+  selectedTops.value = item.tops.filter((t: any) => t.id !== 'uploaded')
+  selectedBottoms.value = item.bottoms.filter((b: any) => b.id !== 'uploaded')
+  selectedAccessories.value = item.accessories.filter((a: any) => a.id !== 'uploaded')
+  selectedBackground.value = item.background
+  customPrompt.value = item.prompt
+  batchMode.value = item.batchMode
+  
+  // Restore uploaded items
+  const uploadedModelItem = item.models.find((m: any) => m.id === 'uploaded')
+  if (uploadedModelItem) {
+    uploadedModel.value = uploadedModelItem.thumbnail
+  }
+  
+  const uploadedTopItem = item.tops.find((t: any) => t.id === 'uploaded')
+  if (uploadedTopItem) {
+    uploadedTop.value = uploadedTopItem.thumbnail
+  }
+  
+  const uploadedBottomItem = item.bottoms.find((b: any) => b.id === 'uploaded')
+  if (uploadedBottomItem) {
+    uploadedBottom.value = uploadedBottomItem.thumbnail
+  }
+  
+  const uploadedAccessoryItem = item.accessories.find((a: any) => a.id === 'uploaded')
+  if (uploadedAccessoryItem) {
+    uploadedAccessory.value = uploadedAccessoryItem.thumbnail
+  }
+  
+  // Show feedback
+  alert('已恢复历史记录设置')
+}
+
+const toggleHistoryCollapse = () => {
+  isHistoryCollapsed.value = !isHistoryCollapsed.value
+}
+
 onMounted(() => {
   // 页面初始化
 })
@@ -494,10 +608,23 @@ onMounted(() => {
       @close-mobile-menu="closeMobileMenu"
     />
 
+    <!-- History Panel -->
+    <GenerationHistory
+      ref="historyRef"
+      :is-collapsed="isHistoryCollapsed"
+      @use-history="useHistoryItem"
+      @toggle-collapse="toggleHistoryCollapse"
+    />
+
     <!-- Main Content -->
     <main class="flex-1 flex overflow-hidden">
       <!-- Left Panel - Controls -->
-      <div class="w-full lg:w-1/2 bg-gray-950 p-6 overflow-y-auto border-r border-gray-800">
+      <div :class="[
+        'bg-gray-950 p-6 overflow-y-auto border-r border-gray-800',
+        'w-full',
+        'lg:w-2/5',
+        'xl:w-1/3'
+      ]">
         <div class="max-w-lg mx-auto">
           <!-- Header -->
           <div class="mb-6">
@@ -869,7 +996,11 @@ onMounted(() => {
       </div>
 
       <!-- Right Panel - Results -->
-      <div class="hidden lg:block w-1/2 bg-gray-900 p-6 overflow-y-auto">
+      <div :class="[
+        'hidden lg:block bg-gray-900 p-6 overflow-y-auto',
+        'lg:w-3/5',
+        'xl:w-2/3'
+      ]">
         <div class="max-w-lg mx-auto">
           <div class="mb-6">
             <div class="flex justify-between items-center mb-4">
