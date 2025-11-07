@@ -69,7 +69,7 @@ const closeMobileMenu = () => {
 }
 
 const navigateToNewProject = () => {
-  router.push('/dashboard/projects')
+  router.push('/projects')
 }
 
 onMounted(() => {
@@ -90,16 +90,6 @@ onMounted(() => {
 
     <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-hidden">
-      <!-- Mobile Header -->
-      <div class="lg:hidden bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
-        <h1 class="text-xl font-bold text-white">Dashboard</h1>
-        <button
-          @click="toggleMobileMenu"
-          class="p-2 text-gray-400 hover:text-white"
-        >
-          <Menu class="w-6 h-6" />
-        </button>
-      </div>
 
       <div class="flex-1 overflow-y-auto p-6 lg:p-8">
         <!-- Welcome Section -->
@@ -108,21 +98,6 @@ onMounted(() => {
           <p class="text-sm text-gray-400">这是你的创作概览和快速操作面板</p>
         </div>
 
-        <!-- Quick Action -->
-        <div class="mb-8">
-          <button
-            @click="navigateToNewProject"
-            class="w-full lg:w-auto bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white p-6 rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-primary-500/25 flex items-center space-x-4"
-          >
-            <div class="p-3 bg-white/10 rounded-lg">
-              <Plus class="h-6 w-6" />
-            </div>
-            <div class="text-left">
-              <h3 class="text-lg font-semibold">创建新项目</h3>
-              <p class="text-sm text-primary-100">使用AI生成精美图像</p>
-            </div>
-          </button>
-        </div>
 
         <!-- Stats Overview -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -175,60 +150,79 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Content Grid -->
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          <!-- Recent Projects -->
-          <div class="xl:col-span-2 bg-gray-800 rounded-xl border border-gray-700 p-6">
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-lg font-semibold text-white">最近的项目</h2>
-              <button class="text-sm text-primary-400 hover:text-primary-300 transition-colors">
-                查看全部
+        <!-- Main Left-Right Layout -->
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 min-h-0">
+          <!-- Left Panel - Operations -->
+          <div class="space-y-6 order-1 xl:order-1">
+            <!-- Quick Action -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+              <button
+                @click="navigateToNewProject"
+                class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white p-6 rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-primary-500/25 flex items-center space-x-4"
+              >
+                <div class="p-3 bg-white/10 rounded-lg">
+                  <Plus class="h-6 w-6" />
+                </div>
+                <div class="text-left">
+                  <h3 class="text-lg font-semibold">创建新项目</h3>
+                  <p class="text-sm text-primary-100">使用AI生成精美图像</p>
+                </div>
               </button>
             </div>
-            <div class="space-y-4">
-              <div
-                v-for="project in mockRecentProjects"
-                :key="project.id"
-                class="flex items-center space-x-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-750 transition-colors cursor-pointer"
-              >
-                <img
-                  :src="project.thumbnail"
-                  :alt="project.name"
-                  class="w-12 h-12 rounded-lg object-cover"
-                />
-                <div class="flex-1">
-                  <h3 class="text-white font-medium">{{ project.name }}</h3>
-                  <p class="text-gray-400 text-sm">{{ project.imageCount }} 张图片 • {{ project.lastModified }}</p>
-                </div>
-                <div class="flex items-center">
-                  <span
-                    :class="[
-                      'px-2 py-1 rounded-full text-xs',
-                      project.status === 'completed'
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-yellow-500/20 text-yellow-400'
-                    ]"
-                  >
-                    {{ project.status === 'completed' ? '已完成' : '处理中' }}
-                  </span>
+
+            <!-- Recent Projects -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-6 flex-1 min-h-0">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-white">最近的项目</h2>
+                <button class="text-sm text-primary-400 hover:text-primary-300 transition-colors">
+                  查看全部
+                </button>
+              </div>
+              <div class="space-y-4 overflow-y-auto max-h-96">
+                <div
+                  v-for="project in mockRecentProjects"
+                  :key="project.id"
+                  class="flex items-center space-x-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-750 transition-colors cursor-pointer"
+                >
+                  <img
+                    :src="project.thumbnail"
+                    :alt="project.name"
+                    class="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-white font-medium truncate">{{ project.name }}</h3>
+                    <p class="text-gray-400 text-sm truncate">{{ project.imageCount }} 张图片 • {{ project.lastModified }}</p>
+                  </div>
+                  <div class="flex items-center flex-shrink-0">
+                    <span
+                      :class="[
+                        'px-2 py-1 rounded-full text-xs whitespace-nowrap',
+                        project.status === 'completed'
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-yellow-500/20 text-yellow-400'
+                      ]"
+                    >
+                      {{ project.status === 'completed' ? '已完成' : '处理中' }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Right Column -->
-          <div class="space-y-6">
-            <!-- Recent Images -->
+          <!-- Right Panel - Results & Gallery -->
+          <div class="space-y-6 order-2 xl:order-2">
+            <!-- Recent Images Gallery -->
             <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-base font-semibold text-white">最新图片</h2>
+                <h2 class="text-lg font-semibold text-white">最新图片</h2>
                 <button class="text-sm text-primary-400 hover:text-primary-300 transition-colors">
                   查看更多
                 </button>
               </div>
-              <div class="grid grid-cols-3 gap-3">
+              <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-3">
                 <div
-                  v-for="(image, index) in mockRecentImages.slice(0, 6)"
+                  v-for="(image, index) in mockRecentImages"
                   :key="index"
                   class="aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform cursor-pointer"
                 >
@@ -245,22 +239,22 @@ onMounted(() => {
             <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
               <div class="flex items-center space-x-2 mb-4">
                 <Activity class="h-5 w-5 text-primary-400" />
-                <h2 class="text-base font-semibold text-white">最近活动</h2>
+                <h2 class="text-lg font-semibold text-white">最近活动</h2>
               </div>
-              <div class="space-y-4">
+              <div class="space-y-4 max-h-64 overflow-y-auto">
                 <div
                   v-for="(activity, index) in mockRecentActivity"
                   :key="index"
                   class="flex items-center space-x-3"
                 >
-                  <div class="w-2 h-2 bg-primary-500 rounded-full"></div>
-                  <div class="flex-1">
-                    <p class="text-white text-sm">{{ activity.action }}</p>
-                    <p class="text-gray-400 text-xs">{{ activity.project }}</p>
+                  <div class="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0"></div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-white text-sm truncate">{{ activity.action }}</p>
+                    <p class="text-gray-400 text-xs truncate">{{ activity.project }}</p>
                   </div>
-                  <div class="flex items-center space-x-1 text-gray-500">
+                  <div class="flex items-center space-x-1 text-gray-500 flex-shrink-0">
                     <Clock class="h-3 w-3" />
-                    <span class="text-xs">{{ activity.time }}</span>
+                    <span class="text-xs whitespace-nowrap">{{ activity.time }}</span>
                   </div>
                 </div>
               </div>

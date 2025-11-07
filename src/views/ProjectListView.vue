@@ -82,11 +82,11 @@ const createProject = () => {
   closeCreateModal()
   
   // 跳转到项目详情页开始生成流程
-  router.push(`/dashboard/projects/${newProject.id}`)
+  router.push(`/projects/${newProject.id}`)
 }
 
 const openProject = (projectId: string) => {
-  router.push(`/dashboard/projects/${projectId}`)
+  router.push(`/projects/${projectId}`)
 }
 
 const getStatusColor = (status: string) => {

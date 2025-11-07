@@ -1,111 +1,82 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
-import StepperComponent from '../components/StepperComponent.vue'
-import { ArrowLeft, User, Shirt, Image as ImageIcon, Settings, Eye, Menu, Upload, Check, X, Loader2, Download } from 'lucide-vue-next'
+import { Upload, Download, User, Camera, Palette, Sparkles } from 'lucide-vue-next'
 
-const router = useRouter()
-const route = useRoute()
 const isMobileMenuOpen = ref(false)
-const currentStep = ref(1)
 
-const projectId = computed(() => route.params.id as string)
-
-const steps = [
-  { id: 1, title: '选择模特', description: '虚拟形象', icon: User },
-  { id: 2, title: '搭配服装', description: '上衣下装配饰', icon: Shirt },
-  { id: 3, title: '选择背景', description: '场景设置', icon: ImageIcon },
-  { id: 4, title: '生成设置', description: '质量规格', icon: Settings },
-  { id: 5, title: '预览生成', description: '确认生成', icon: Eye }
-]
-
-// Mock project data
-const project = ref({
-  id: projectId.value,
-  name: '夏季服装系列',
-  description: '2024夏季新品模特展示'
-})
-
-// Step selection states
-const selectedAvatar = ref<any>(null)
-const selectedClothing = ref<any>({
-  top: null,
-  bottom: null,
-  accessories: []
-})
+// Selection states
+const selectedTop = ref<any>(null)
+const selectedBottom = ref<any>(null)
+const selectedModel = ref<any>(null)
 const selectedBackground = ref<any>(null)
-const generationSettings = ref({
-  count: 1,
-  prompt: ''
-})
+const selectedStyle = ref('realistic')
+const uploadedTop = ref<string | null>(null)
+const uploadedBottom = ref<string | null>(null)
+const generatedResults = ref<any[]>([])
+const isGenerating = ref(false)
+const generationCount = ref(2)
+const selectedPromptTemplate = ref<any>(null)
+const customPrompt = ref('')
 
 // Mock data
-const presetAvatars = ref([
-  {
-    id: '1',
-    name: '女性模特 A',
-    gender: 'female',
-    thumbnail: 'https://images.unsplash.com/photo-1594736797933-d0d3023055e0?w=150&h=200&fit=crop',
-    description: '亚洲女性，身材匀称'
-  },
-  {
-    id: '2', 
-    name: '女性模特 B',
-    gender: 'female',
-    thumbnail: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&h=200&fit=crop',
-    description: '欧美女性，高挑身材'
-  },
-  {
-    id: '3',
-    name: '男性模特 A',
-    gender: 'male',
-    thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=200&fit=crop',
-    description: '亚洲男性，标准身材'
-  },
-  {
-    id: '4',
-    name: '男性模特 B',
-    gender: 'male',
-    thumbnail: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=200&fit=crop',
-    description: '欧美男性，健壮体型'
-  }
+const topClothingItems = ref([
+  { id: '1', name: '白色衬衫', thumbnail: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=150&h=150&fit=crop', category: 'shirt' },
+  { id: '2', name: '蓝色牛仔衬衫', thumbnail: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=150&h=150&fit=crop', category: 'shirt' },
+  { id: '3', name: '黑色T恤', thumbnail: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=150&h=150&fit=crop', category: 'casual' },
+  { id: '4', name: '西装外套', thumbnail: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=150&h=150&fit=crop', category: 'formal' },
+  { id: '5', name: '运动上衣', thumbnail: 'https://images.unsplash.com/photo-1544966503-7cc5ac882d8e?w=150&h=150&fit=crop', category: 'sport' },
+  { id: '6', name: '毛衣', thumbnail: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=150&h=150&fit=crop', category: 'casual' }
 ])
 
-const clothingItems = ref({
-  tops: [
-    { id: '1', name: '白色衬衫', thumbnail: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=150&h=150&fit=crop', category: 'formal' },
-    { id: '2', name: '蓝色牛仔衬衫', thumbnail: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=150&h=150&fit=crop', category: 'casual' },
-    { id: '3', name: '黑色T恤', thumbnail: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=150&h=150&fit=crop', category: 'casual' },
-    { id: '4', name: '红色连衣裙', thumbnail: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=150&h=150&fit=crop', category: 'formal' },
-    { id: '5', name: '运动上衣', thumbnail: 'https://images.unsplash.com/photo-1544966503-7cc5ac882d8e?w=150&h=150&fit=crop', category: 'sport' },
-    { id: '6', name: '西装外套', thumbnail: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=150&h=150&fit=crop', category: 'formal' }
-  ],
-  bottoms: [
-    { id: '1', name: '黑色西装裤', thumbnail: 'https://images.unsplash.com/photo-1584370848010-d7fe6bc6ce5e?w=150&h=150&fit=crop', category: 'formal' },
-    { id: '2', name: '蓝色牛仔裤', thumbnail: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=150&h=150&fit=crop', category: 'casual' },
-    { id: '3', name: '白色短裤', thumbnail: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=150&h=150&fit=crop', category: 'casual' },
-    { id: '4', name: '黑色短裙', thumbnail: 'https://images.unsplash.com/photo-1583496661160-fb5886a13709?w=150&h=150&fit=crop', category: 'formal' },
-    { id: '5', name: '运动裤', thumbnail: 'https://images.unsplash.com/photo-1506629905996-9f74c4f53c41?w=150&h=150&fit=crop', category: 'sport' },
-    { id: '6', name: '长裙', thumbnail: 'https://images.unsplash.com/photo-1583744946564-b52ac1c389c8?w=150&h=150&fit=crop', category: 'formal' }
-  ],
-  accessories: [
-    { id: '1', name: '黑色墨镜', thumbnail: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=150&h=150&fit=crop', category: 'eyewear' },
-    { id: '2', name: '棒球帽', thumbnail: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=150&h=150&fit=crop', category: 'hat' },
-    { id: '3', name: '金色手表', thumbnail: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=150&h=150&fit=crop', category: 'jewelry' },
-    { id: '4', name: '皮质手包', thumbnail: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=150&h=150&fit=crop', category: 'bag' },
-    { id: '5', name: '丝巾', thumbnail: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=150&h=150&fit=crop', category: 'accessory' },
-    { id: '6', name: '项链', thumbnail: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=150&h=150&fit=crop', category: 'jewelry' }
-  ]
-})
+const bottomClothingItems = ref([
+  { id: '1', name: '蓝色牛仔裤', thumbnail: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=150&h=150&fit=crop', category: 'casual' },
+  { id: '2', name: '黑色西裤', thumbnail: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=150&h=150&fit=crop', category: 'formal' },
+  { id: '3', name: '运动裤', thumbnail: 'https://images.unsplash.com/photo-1506629905607-0e2dbec85709?w=150&h=150&fit=crop', category: 'sport' },
+  { id: '4', name: '短裤', thumbnail: 'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=150&h=150&fit=crop', category: 'casual' },
+  { id: '5', name: '红色连衣裙', thumbnail: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=150&h=150&fit=crop', category: 'dress' },
+  { id: '6', name: '职业裙装', thumbnail: 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=150&h=150&fit=crop', category: 'formal' }
+])
+
+const modelOptions = ref([
+  { id: '1', name: '女性模特 A', thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=200&fit=crop', type: 'female', style: 'elegant' },
+  { id: '2', name: '女性模特 B', thumbnail: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&h=200&fit=crop', type: 'female', style: 'casual' },
+  { id: '3', name: '男性模特 A', thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=200&fit=crop', type: 'male', style: 'professional' },
+  { id: '4', name: '男性模特 B', thumbnail: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=200&fit=crop', type: 'male', style: 'casual' },
+  { id: '5', name: '女性模特 C', thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=200&fit=crop', type: 'female', style: 'fashion' },
+  { id: '6', name: '男性模特 C', thumbnail: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=200&fit=crop', type: 'male', style: 'sport' }
+])
 
 const backgroundOptions = ref([
-  { id: '1', name: '纯色背景', thumbnail: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=200&h=150&fit=crop', category: 'studio' },
-  { id: '2', name: '城市街道', thumbnail: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=200&h=150&fit=crop', category: 'outdoor' },
-  { id: '3', name: '咖啡店', thumbnail: 'https://images.unsplash.com/photo-1445116572660-236099c90d20?w=200&h=150&fit=crop', category: 'indoor' },
-  { id: '4', name: '海滩', thumbnail: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=200&h=150&fit=crop', category: 'outdoor' },
-  { id: '5', name: '办公室', thumbnail: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&h=150&fit=crop', category: 'indoor' },
-  { id: '6', name: '公园', thumbnail: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=200&h=150&fit=crop', category: 'outdoor' }
+  { id: '1', name: '纯色背景', thumbnail: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=150&h=150&fit=crop', type: 'solid' },
+  { id: '2', name: '咖啡店', thumbnail: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&h=150&fit=crop', type: 'indoor' },
+  { id: '3', name: '办公室', thumbnail: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&h=150&fit=crop', type: 'indoor' },
+  { id: '4', name: '公园', thumbnail: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=150&h=150&fit=crop', type: 'outdoor' },
+  { id: '5', name: '街道', thumbnail: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=150&h=150&fit=crop', type: 'outdoor' },
+  { id: '6', name: '摄影棚', thumbnail: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=150&h=150&fit=crop', type: 'studio' }
+])
+
+const styleOptions = ref([
+  { value: 'realistic', label: '写实风格' },
+  { value: 'fashion', label: '时尚风格' },
+  { value: 'portrait', label: '肖像风格' },
+  { value: 'commercial', label: '商业风格' }
+])
+
+// Prompt templates for model generation
+const promptTemplates = ref([
+  { id: '1', name: '时尚商业', prompt: '时尚模特，专业摄影，商业广告，完美光线，高品质' },
+  { id: '2', name: '街头潮流', prompt: '街头时尚，潮流穿搭，城市背景，年轻活力，自然姿态' },
+  { id: '3', name: '职业正装', prompt: '职业模特，正装形象，商务环境，专业自信，正式场合' },
+  { id: '4', name: '休闲日常', prompt: '日常休闲，自然放松，生活化场景，舒适穿搭，温馨氛围' },
+  { id: '5', name: '运动健康', prompt: '运动模特，健康活力，运动装备，动态姿势，健身环境' }
+])
+
+const sampleResults = ref([
+  { id: '1', url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop' },
+  { id: '2', url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop' },
+  { id: '3', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop' },
+  { id: '4', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop' }
 ])
 
 const toggleMobileMenu = () => {
@@ -116,79 +87,71 @@ const closeMobileMenu = () => {
   isMobileMenuOpen.value = false
 }
 
-const goBack = () => {
-  router.push('/dashboard/projects')
+const selectTop = (item: any) => {
+  selectedTop.value = item
 }
 
-const nextStep = () => {
-  if (currentStep.value < steps.length) {
-    currentStep.value++
-  } else {
-    generateModel()
-  }
+const selectBottom = (item: any) => {
+  selectedBottom.value = item
 }
 
-const prevStep = () => {
-  if (currentStep.value > 1) {
-    currentStep.value--
-  }
-}
-
-const selectAvatar = (avatar: any) => {
-  selectedAvatar.value = avatar
-}
-
-const selectClothingItem = (type: string, item: any) => {
-  if (type === 'accessories') {
-    const index = selectedClothing.value.accessories.findIndex((acc: any) => acc.id === item.id)
-    if (index > -1) {
-      selectedClothing.value.accessories.splice(index, 1)
-    } else {
-      selectedClothing.value.accessories.push(item)
-    }
-  } else {
-    selectedClothing.value[type] = selectedClothing.value[type]?.id === item.id ? null : item
-  }
+const selectModel = (model: any) => {
+  selectedModel.value = model
 }
 
 const selectBackground = (background: any) => {
   selectedBackground.value = background
 }
 
-const uploadCustomAvatar = () => {
-  // 这里应该实现文件上传逻辑
-  alert('自定义上传功能开发中...')
+const uploadTopFile = () => {
+  // 模拟上衣文件上传
+  uploadedTop.value = 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=300&h=400&fit=crop'
 }
 
-const uploadCustomClothing = () => {
-  alert('自定义服装上传功能开发中...')
+const uploadBottomFile = () => {
+  // 模拟下装文件上传
+  uploadedBottom.value = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=300&h=400&fit=crop'
 }
 
-const uploadCustomBackground = () => {
-  alert('自定义背景上传功能开发中...')
+const selectPromptTemplate = (template: any) => {
+  selectedPromptTemplate.value = template
+  customPrompt.value = template.prompt
 }
 
-const isNextDisabled = computed(() => {
-  switch (currentStep.value) {
-    case 1: return !selectedAvatar.value
-    case 2: return !selectedClothing.value.top || !selectedClothing.value.bottom
-    case 3: return !selectedBackground.value
-    case 4: return generationSettings.value.count < 1 || generationSettings.value.count > 16
-    case 5: return false
-    default: return false
+const generateImages = () => {
+  if (!selectedModel.value || (!selectedTop.value && !uploadedTop.value) || !customPrompt.value.trim()) {
+    alert('请选择模特、上装和prompt')
+    return
   }
-})
-
-const generateModel = () => {
-  alert('开始生成AI模特图...')
-  // 这里会实现实际的生成逻辑
+  
+  isGenerating.value = true
+  
+  // 模拟生成过程
+  setTimeout(() => {
+    const mockImages = [
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=600&fit=crop'
+    ]
+    
+    generatedResults.value = Array.from({ length: generationCount.value }, (_, index) => ({
+      id: String(index + 1),
+      url: mockImages[index % mockImages.length],
+      config: { 
+        model: selectedModel.value.name, 
+        style: selectedStyle.value, 
+        prompt: customPrompt.value.substring(0, 50) + '...'
+      }
+    }))
+    isGenerating.value = false
+  }, 4000)
 }
 
 onMounted(() => {
-  // 检查项目是否存在
-  if (!projectId.value) {
-    router.push('/dashboard/projects')
-  }
+  // 页面初始化
 })
 </script>
 
@@ -202,630 +165,292 @@ onMounted(() => {
     />
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col overflow-hidden">
-      <!-- Mobile Header -->
-      <div class="lg:hidden bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <button
-            @click="goBack"
-            class="p-2 text-gray-400 hover:text-white -ml-2"
-          >
-            <ArrowLeft class="w-5 h-5" />
-          </button>
-          <h1 class="text-xl font-bold text-white">{{ project.name }}</h1>
-        </div>
-        <button
-          @click="toggleMobileMenu"
-          class="p-2 text-gray-400 hover:text-white"
-        >
-          <Menu class="w-6 h-6" />
-        </button>
-      </div>
-
-      <!-- Header -->
-      <div class="bg-gray-900 border-b border-gray-800 px-6 lg:px-8 py-6">
-        <div class="flex items-center space-x-4 mb-6">
-          <button
-            @click="goBack"
-            class="hidden lg:block p-2 text-gray-400 hover:text-white -ml-2"
-          >
-            <ArrowLeft class="w-5 h-5" />
-          </button>
-          <div>
-            <h1 class="text-xl font-bold text-white">{{ project.name }}</h1>
-            <p class="text-gray-400">{{ project.description }}</p>
+    <main class="flex-1 flex overflow-hidden">
+      <!-- Left Panel - Controls -->
+      <div class="w-full lg:w-1/2 bg-gray-950 p-6 overflow-y-auto border-r border-gray-800">
+        <div class="max-w-lg mx-auto">
+          <!-- Header -->
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold text-white mb-2">模特图生成</h1>
+            <p class="text-gray-400 text-sm">选择模特、服装搭配和背景，生成完整的模特展示图</p>
           </div>
-        </div>
 
-        <!-- Stepper -->
-        <StepperComponent
-          :current-step="currentStep"
-          :steps="steps"
-        />
-      </div>
-
-      <!-- Step Content -->
-      <div class="flex-1 overflow-y-auto p-6 lg:p-8 pb-32 lg:pb-28">
-          <!-- Step 1: Avatar Selection -->
-          <div v-if="currentStep === 1" class="max-w-4xl">
-            <div class="mb-8">
-              <h2 class="text-xl font-bold text-white mb-2">选择虚拟模特</h2>
-              <p class="text-gray-400">从预设模特中选择，或上传自定义形象</p>
-            </div>
-
-            <!-- Avatar Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          <!-- Model Selection -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">选择模特</h2>
+            <div class="grid grid-cols-3 gap-3">
               <div
-                v-for="avatar in presetAvatars"
-                :key="avatar.id"
-                @click="selectAvatar(avatar)"
+                v-for="model in modelOptions"
+                :key="model.id"
+                @click="selectModel(model)"
                 :class="[
-                  'bg-gray-800 rounded-xl border-2 cursor-pointer transition-all hover:scale-105',
-                  selectedAvatar?.id === avatar.id
-                    ? 'border-primary-500 ring-2 ring-primary-500/20'
-                    : 'border-gray-700 hover:border-gray-600'
+                  'aspect-[3/4] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  selectedModel?.id === model.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
-                <div class="aspect-[3/4] overflow-hidden rounded-t-xl">
-                  <img
-                    :src="avatar.thumbnail"
-                    :alt="avatar.name"
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-                <div class="p-4">
-                  <h3 class="font-medium text-white mb-1">{{ avatar.name }}</h3>
-                  <p class="text-xs text-gray-400">{{ avatar.description }}</p>
-                </div>
+                <img
+                  :src="model.thumbnail"
+                  :alt="model.name"
+                  class="w-full h-full object-cover"
+                />
               </div>
+            </div>
+            <div v-if="selectedModel" class="mt-3 text-center">
+              <span class="text-primary-400 text-sm">已选择: {{ selectedModel.name }}</span>
+            </div>
+          </div>
 
-              <!-- Upload Custom -->
+          <!-- Top Clothing Selection -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">选择上装</h2>
+            <div class="grid grid-cols-3 gap-3 mb-4">
               <div
-                @click="uploadCustomAvatar"
-                class="bg-gray-800/50 border-2 border-dashed border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-primary-500 hover:bg-gray-800/70 transition-all cursor-pointer group"
+                v-for="item in topClothingItems"
+                :key="item.id"
+                @click="selectTop(item)"
+                :class="[
+                  'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  selectedTop?.id === item.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                ]"
               >
-                <div class="p-4 bg-primary-500/20 rounded-full mb-4 group-hover:bg-primary-500/30 transition-colors">
-                  <Upload class="h-8 w-8 text-primary-400" />
-                </div>
-                <h3 class="text-sm font-medium text-white mb-1">自定义上传</h3>
-                <p class="text-xs text-gray-400">上传您的形象</p>
-              </div>
-            </div>
-
-            <!-- Selected Avatar Preview -->
-            <div v-if="selectedAvatar" class="bg-gray-800 rounded-xl p-6">
-              <h3 class="text-base font-semibold text-white mb-4">已选择模特</h3>
-              <div class="flex items-center space-x-4">
                 <img
-                  :src="selectedAvatar.thumbnail"
-                  :alt="selectedAvatar.name"
-                  class="w-16 h-20 object-cover rounded-lg"
+                  :src="item.thumbnail"
+                  :alt="item.name"
+                  class="w-full h-full object-cover"
                 />
-                <div>
-                  <p class="font-medium text-white">{{ selectedAvatar.name }}</p>
-                  <p class="text-sm text-gray-400">{{ selectedAvatar.description }}</p>
-                </div>
               </div>
+            </div>
+            
+            <!-- Upload Top Option -->
+            <div
+              @click="uploadTopFile"
+              class="border-2 border-dashed border-gray-700 hover:border-gray-600 rounded-lg p-4 text-center cursor-pointer transition-colors group"
+            >
+              <Upload class="h-6 w-6 text-gray-500 group-hover:text-gray-400 mx-auto mb-2" />
+              <p class="text-gray-500 group-hover:text-gray-400 text-sm">上传上装</p>
+            </div>
+
+            <div v-if="uploadedTop" class="mt-3 p-3 bg-gray-800 rounded-lg">
+              <img :src="uploadedTop" alt="Uploaded top" class="w-16 h-16 object-cover rounded mx-auto mb-2" />
+              <p class="text-green-400 text-sm text-center">上装上传成功</p>
             </div>
           </div>
 
-          <!-- Step 2: Clothing Selection -->
-          <div v-else-if="currentStep === 2" class="max-w-6xl">
-            <div class="mb-8">
-              <h2 class="text-xl font-bold text-white mb-2">搭配服装</h2>
-              <p class="text-gray-400">为模特选择上衣、下装和配饰</p>
-            </div>
-
-            <!-- Tops -->
-            <div class="mb-8">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base font-semibold text-white">上衣</h3>
-                <button
-                  @click="uploadCustomClothing"
-                  class="text-primary-400 hover:text-primary-300 text-sm flex items-center space-x-1"
-                >
-                  <Upload class="w-4 h-4" />
-                  <span>上传自定义</span>
-                </button>
-              </div>
-              <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
-                <div
-                  v-for="item in clothingItems.tops"
-                  :key="item.id"
-                  @click="selectClothingItem('top', item)"
-                  :class="[
-                    'bg-gray-800 rounded-lg border-2 cursor-pointer transition-all hover:scale-105',
-                    selectedClothing.top?.id === item.id
-                      ? 'border-primary-500 ring-2 ring-primary-500/20'
-                      : 'border-gray-700 hover:border-gray-600'
-                  ]"
-                >
-                  <div class="aspect-square overflow-hidden rounded-t-lg">
-                    <img :src="item.thumbnail" :alt="item.name" class="w-full h-full object-cover" />
-                  </div>
-                  <div class="p-3">
-                    <p class="text-sm font-medium text-white">{{ item.name }}</p>
-                    <span class="inline-block px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded mt-1">
-                      {{ item.category }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Bottoms -->
-            <div class="mb-8">
-              <h3 class="text-base font-semibold text-white mb-4">下装</h3>
-              <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
-                <div
-                  v-for="item in clothingItems.bottoms"
-                  :key="item.id"
-                  @click="selectClothingItem('bottom', item)"
-                  :class="[
-                    'bg-gray-800 rounded-lg border-2 cursor-pointer transition-all hover:scale-105',
-                    selectedClothing.bottom?.id === item.id
-                      ? 'border-primary-500 ring-2 ring-primary-500/20'
-                      : 'border-gray-700 hover:border-gray-600'
-                  ]"
-                >
-                  <div class="aspect-square overflow-hidden rounded-t-lg">
-                    <img :src="item.thumbnail" :alt="item.name" class="w-full h-full object-cover" />
-                  </div>
-                  <div class="p-3">
-                    <p class="text-sm font-medium text-white">{{ item.name }}</p>
-                    <span class="inline-block px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded mt-1">
-                      {{ item.category }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Accessories -->
-            <div class="mb-8">
-              <h3 class="text-base font-semibold text-white mb-4">配饰 (可多选)</h3>
-              <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
-                <div
-                  v-for="item in clothingItems.accessories"
-                  :key="item.id"
-                  @click="selectClothingItem('accessories', item)"
-                  :class="[
-                    'bg-gray-800 rounded-lg border-2 cursor-pointer transition-all hover:scale-105 relative',
-                    selectedClothing.accessories.some((acc: any) => acc.id === item.id)
-                      ? 'border-primary-500 ring-2 ring-primary-500/20'
-                      : 'border-gray-700 hover:border-gray-600'
-                  ]"
-                >
-                  <div class="aspect-square overflow-hidden rounded-t-lg">
-                    <img :src="item.thumbnail" :alt="item.name" class="w-full h-full object-cover" />
-                  </div>
-                  <div class="p-3">
-                    <p class="text-sm font-medium text-white">{{ item.name }}</p>
-                    <span class="inline-block px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded mt-1">
-                      {{ item.category }}
-                    </span>
-                  </div>
-                  <div
-                    v-if="selectedClothing.accessories.some((acc: any) => acc.id === item.id)"
-                    class="absolute top-2 right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center"
-                  >
-                    <Check class="w-4 h-4 text-white" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Selected Items Summary -->
-            <div class="bg-gray-800 rounded-xl p-6">
-              <h3 class="text-base font-semibold text-white mb-4">已选择的搭配</h3>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <p class="text-gray-400 mb-2">上衣</p>
-                  <div v-if="selectedClothing.top" class="flex items-center space-x-3">
-                    <img :src="selectedClothing.top.thumbnail" class="w-12 h-12 rounded object-cover" />
-                    <span class="text-white">{{ selectedClothing.top.name }}</span>
-                  </div>
-                  <p v-else class="text-gray-500">未选择</p>
-                </div>
-                <div>
-                  <p class="text-gray-400 mb-2">下装</p>
-                  <div v-if="selectedClothing.bottom" class="flex items-center space-x-3">
-                    <img :src="selectedClothing.bottom.thumbnail" class="w-12 h-12 rounded object-cover" />
-                    <span class="text-white">{{ selectedClothing.bottom.name }}</span>
-                  </div>
-                  <p v-else class="text-gray-500">未选择</p>
-                </div>
-                <div>
-                  <p class="text-gray-400 mb-2">配饰 ({{ selectedClothing.accessories.length }})</p>
-                  <div v-if="selectedClothing.accessories.length > 0" class="flex flex-wrap gap-2">
-                    <div
-                      v-for="accessory in selectedClothing.accessories"
-                      :key="accessory.id"
-                      class="flex items-center space-x-2 bg-gray-700 rounded-full px-3 py-1"
-                    >
-                      <img :src="accessory.thumbnail" class="w-6 h-6 rounded-full object-cover" />
-                      <span class="text-white text-sm">{{ accessory.name }}</span>
-                    </div>
-                  </div>
-                  <p v-else class="text-gray-500">未选择</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Step 3: Background Selection -->
-          <div v-else-if="currentStep === 3" class="max-w-4xl">
-            <div class="mb-8">
-              <h2 class="text-xl font-bold text-white mb-2">选择背景</h2>
-              <p class="text-gray-400">设置拍摄场景和背景</p>
-            </div>
-
-            <!-- Background Options -->
-            <div class="mb-8">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base font-semibold text-white">预设背景</h3>
-                <button
-                  @click="uploadCustomBackground"
-                  class="text-primary-400 hover:text-primary-300 text-sm flex items-center space-x-1"
-                >
-                  <Upload class="w-4 h-4" />
-                  <span>上传自定义</span>
-                </button>
-              </div>
-              
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
-                <div
-                  v-for="background in backgroundOptions"
-                  :key="background.id"
-                  @click="selectBackground(background)"
-                  :class="[
-                    'bg-gray-800 rounded-xl border-2 cursor-pointer transition-all hover:scale-105',
-                    selectedBackground?.id === background.id
-                      ? 'border-primary-500 ring-2 ring-primary-500/20'
-                      : 'border-gray-700 hover:border-gray-600'
-                  ]"
-                >
-                  <div class="aspect-[4/3] overflow-hidden rounded-t-xl">
-                    <img
-                      :src="background.thumbnail"
-                      :alt="background.name"
-                      class="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div class="p-4">
-                    <h4 class="font-medium text-white mb-1">{{ background.name }}</h4>
-                    <span class="inline-block px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded">
-                      {{ background.category }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Upload Custom Background -->
-                <div
-                  @click="uploadCustomBackground"
-                  class="bg-gray-800/50 border-2 border-dashed border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-primary-500 hover:bg-gray-800/70 transition-all cursor-pointer group aspect-[4/3]"
-                >
-                  <div class="p-4 bg-primary-500/20 rounded-full mb-4 group-hover:bg-primary-500/30 transition-colors">
-                    <Upload class="h-8 w-8 text-primary-400" />
-                  </div>
-                  <h4 class="text-sm font-medium text-white mb-1">自定义背景</h4>
-                  <p class="text-xs text-gray-400">上传您的背景</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Selected Background Preview -->
-            <div v-if="selectedBackground" class="bg-gray-800 rounded-xl p-6">
-              <h3 class="text-base font-semibold text-white mb-4">已选择背景</h3>
-              <div class="flex items-start space-x-4">
+          <!-- Bottom Clothing Selection -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">选择下装</h2>
+            <div class="grid grid-cols-3 gap-3 mb-4">
+              <div
+                v-for="item in bottomClothingItems"
+                :key="item.id"
+                @click="selectBottom(item)"
+                :class="[
+                  'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  selectedBottom?.id === item.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                ]"
+              >
                 <img
-                  :src="selectedBackground.thumbnail"
-                  :alt="selectedBackground.name"
-                  class="w-32 h-24 object-cover rounded-lg"
+                  :src="item.thumbnail"
+                  :alt="item.name"
+                  class="w-full h-full object-cover"
                 />
-                <div>
-                  <p class="font-medium text-white text-base">{{ selectedBackground.name }}</p>
-                  <p class="text-gray-400 text-sm mb-2">类型: {{ selectedBackground.category }}</p>
-                  <span class="inline-block px-3 py-1 bg-primary-500/20 text-primary-300 text-sm rounded-full">
-                    已选择
-                  </span>
-                </div>
               </div>
+            </div>
+            
+            <!-- Upload Bottom Option -->
+            <div
+              @click="uploadBottomFile"
+              class="border-2 border-dashed border-gray-700 hover:border-gray-600 rounded-lg p-4 text-center cursor-pointer transition-colors group"
+            >
+              <Upload class="h-6 w-6 text-gray-500 group-hover:text-gray-400 mx-auto mb-2" />
+              <p class="text-gray-500 group-hover:text-gray-400 text-sm">上传下装</p>
+            </div>
+
+            <div v-if="uploadedBottom" class="mt-3 p-3 bg-gray-800 rounded-lg">
+              <img :src="uploadedBottom" alt="Uploaded bottom" class="w-16 h-16 object-cover rounded mx-auto mb-2" />
+              <p class="text-green-400 text-sm text-center">下装上传成功</p>
             </div>
           </div>
 
-          <!-- Step 4: Generation Settings -->
-          <div v-else-if="currentStep === 4" class="max-w-6xl">
-            <div class="mb-8">
-              <h2 class="text-xl font-bold text-white mb-2">生成设置</h2>
-              <p class="text-gray-400">设置生成参数、数量和提示词来优化生成效果</p>
-            </div>
-
-            <!-- Prompt Settings - Full Width -->
-            <div class="mb-8">
-              <div class="bg-gray-800 rounded-xl p-6">
-                <h3 class="text-base font-semibold text-white mb-4">提示词设置</h3>
-                <p class="text-sm text-gray-400 mb-6">添加详细的提示词可以显著提升生成效果和准确性</p>
-
-                <div class="space-y-4">
-                  <!-- Main Prompt -->
-                  <div>
-                    <label class="block text-sm text-gray-300 mb-2">描述提示词</label>
-                    <textarea
-                      v-model="generationSettings.prompt"
-                      placeholder="例如: 专业时装摄影，高质量，工作室灯光，白色背景，清晰细节，商业级质量..."
-                      class="w-full h-32 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 resize-none focus:border-primary-500 focus:outline-none transition-colors"
-                    ></textarea>
-                    <div class="flex justify-between items-center mt-1">
-                      <p class="text-xs text-gray-500">{{ generationSettings.prompt.length }}/500 字符</p>
-                    </div>
-                  </div>
-
-                  <!-- Prompt Tips and Templates -->
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Prompt Tips -->
-                    <div class="bg-gray-900 rounded-lg p-4">
-                      <h4 class="text-sm font-medium text-white mb-3">✨ 提示词建议</h4>
-                      <div class="space-y-2 text-xs text-gray-400">
-                        <p>• 描述想要的摄影风格: "专业时装摄影"、"商业产品摄影"</p>
-                        <p>• 指定灯光效果: "工作室灯光"、"柔和光线"、"戏剧性光影"</p>
-                        <p>• 定义背景: "白色背景"、"渐变背景"、"简洁背景"</p>
-                        <p>• 强调质量: "高质量"、"清晰细节"、"专业级"、"8K超高清"</p>
-                        <p>• 指定服装风格: "时尚搭配"、"商务正装"、"休闲装扮"</p>
-                      </div>
-                    </div>
-
-                    <!-- Quick Prompt Templates -->
-                    <div>
-                      <h4 class="text-sm font-medium text-white mb-3">快速模板</h4>
-                      <div class="space-y-2">
-                        <button
-                          @click="generationSettings.prompt = '专业时装摄影，高质量，工作室灯光，白色背景，清晰细节，商业级质量，8K超高清'"
-                          class="w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-300 transition-colors"
-                        >
-                          时装摄影风格
-                        </button>
-                        <button
-                          @click="generationSettings.prompt = '商务专业摄影，正式场景，柔和光线，简洁背景，企业级品质，肖像风格'"
-                          class="w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-300 transition-colors"
-                        >
-                          商务专业风格
-                        </button>
-                        <button
-                          @click="generationSettings.prompt = '时尚杂志风格，戏剧性光影，艺术化构图，高端品质，创意摄影'"
-                          class="w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-300 transition-colors"
-                        >
-                          艺术创意风格
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          <!-- Background Selection -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">选择背景</h2>
+            <div class="grid grid-cols-3 gap-3">
+              <div
+                v-for="background in backgroundOptions"
+                :key="background.id"
+                @click="selectBackground(background)"
+                :class="[
+                  'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  selectedBackground?.id === background.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                ]"
+              >
+                <img
+                  :src="background.thumbnail"
+                  :alt="background.name"
+                  class="w-full h-full object-cover"
+                />
               </div>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-              <!-- Generation Count -->
-              <div class="bg-gray-800 rounded-xl p-6">
-                <h3 class="text-base font-semibold text-white mb-4">生成数量</h3>
-                <p class="text-sm text-gray-400 mb-6">选择要生成的图片数量，更多图片可以提供更多选择</p>
-                
-                <div class="space-y-4">
-                  <!-- Quantity Input -->
-                  <div class="flex items-center space-x-4">
-                    <label class="text-sm text-gray-300 min-w-fit">数量:</label>
-                    <div class="flex items-center space-x-2">
-                      <button
-                        @click="generationSettings.count = Math.max(1, generationSettings.count - 1)"
-                        class="w-8 h-8 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition-colors"
-                      >
-                        -
-                      </button>
-                      <input
-                        v-model="generationSettings.count"
-                        type="number"
-                        min="1"
-                        max="16"
-                        class="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-center"
-                      />
-                      <button
-                        @click="generationSettings.count = Math.min(16, generationSettings.count + 1)"
-                        class="w-8 h-8 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition-colors"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Quick Select -->
-                  <div>
-                    <p class="text-sm text-gray-400 mb-3">快速选择:</p>
-                    <div class="grid grid-cols-4 gap-2">
-                      <button
-                        v-for="qty in [1, 4, 8, 16]"
-                        :key="qty"
-                        @click="generationSettings.count = qty"
-                        :class="[
-                          'px-3 py-2 rounded-lg text-sm transition-all',
-                          generationSettings.count === qty
-                            ? 'bg-primary-500 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        ]"
-                      >
-                        {{ qty }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Cost Estimate -->
-                  <div class="mt-4 p-3 bg-gray-900 rounded-lg">
-                    <p class="text-xs text-gray-400">预估消耗: {{ generationSettings.count }} 积分</p>
-                  </div>
-                </div>
-              </div>
-
+            <div v-if="selectedBackground" class="mt-3 text-center">
+              <span class="text-primary-400 text-sm">已选择: {{ selectedBackground.name }}</span>
             </div>
           </div>
 
-          <!-- Step 5: Preview and Generate -->
-          <div v-else-if="currentStep === 5" class="max-w-4xl">
-            <div class="mb-8">
-              <h2 class="text-xl font-bold text-white mb-2">预览与生成</h2>
-              <p class="text-gray-400">确认设置并开始生成AI模特图</p>
+          <!-- Generation Count -->  
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">生成数量</h2>
+            <div class="flex space-x-3">
+              <button
+                v-for="count in [1, 2, 3, 4]"
+                :key="count"
+                @click="generationCount = count"
+                :class="[
+                  'px-4 py-2 rounded-lg font-medium transition-all',
+                  generationCount === count 
+                    ? 'bg-primary-500 text-white' 
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ]"
+              >
+                {{ count }}张
+              </button>
+            </div>
+          </div>
+
+          <!-- Style Settings -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">风格设置</h2>
+            <select 
+              v-model="selectedStyle"
+              class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option
+                v-for="style in styleOptions"
+                :key="style.value"
+                :value="style.value"
+              >
+                {{ style.label }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Prompt Templates -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">Prompt模板</h2>
+            
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <button
+                v-for="template in promptTemplates"
+                :key="template.id"
+                @click="selectPromptTemplate(template)"
+                :class="[
+                  'p-3 rounded-lg text-left transition-all border-2',
+                  selectedPromptTemplate?.id === template.id 
+                    ? 'border-primary-500 bg-primary-500/10 text-white' 
+                    : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600'
+                ]"
+              >
+                <div class="font-medium text-sm mb-1">{{ template.name }}</div>
+                <div class="text-xs text-gray-400 line-clamp-2">{{ template.prompt }}</div>
+              </button>
             </div>
 
-            <!-- Preview Configuration -->
-            <div class="space-y-6">
-                <!-- Selected Avatar -->
-                <div class="bg-gray-800 rounded-xl p-6">
-                  <h3 class="text-base font-semibold text-white mb-4">虚拟模特</h3>
-                  <div class="flex items-center space-x-4">
-                    <img
-                      :src="selectedAvatar?.thumbnail"
-                      :alt="selectedAvatar?.name"
-                      class="w-16 h-20 object-cover rounded-lg"
-                    />
-                    <div>
-                      <p class="font-medium text-white">{{ selectedAvatar?.name }}</p>
-                      <p class="text-sm text-gray-400">{{ selectedAvatar?.description }}</p>
-                    </div>
-                  </div>
-                </div>
+            <!-- Custom Prompt -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">自定义Prompt</label>
+              <textarea
+                v-model="customPrompt"
+                placeholder="输入自定义的prompt描述..."
+                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none"
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
 
-                <!-- Selected Clothing -->
-                <div class="bg-gray-800 rounded-xl p-6">
-                  <h3 class="text-base font-semibold text-white mb-4">服装搭配</h3>
-                  <div class="space-y-4">
-                    <div class="flex items-center space-x-4">
-                      <img
-                        :src="selectedClothing.top?.thumbnail"
-                        :alt="selectedClothing.top?.name"
-                        class="w-12 h-12 object-cover rounded"
-                      />
-                      <div>
-                        <p class="text-white text-sm">{{ selectedClothing.top?.name }}</p>
-                        <p class="text-gray-400 text-xs">上衣</p>
-                      </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                      <img
-                        :src="selectedClothing.bottom?.thumbnail"
-                        :alt="selectedClothing.bottom?.name"
-                        class="w-12 h-12 object-cover rounded"
-                      />
-                      <div>
-                        <p class="text-white text-sm">{{ selectedClothing.bottom?.name }}</p>
-                        <p class="text-gray-400 text-xs">下装</p>
-                      </div>
-                    </div>
-                    <div v-if="selectedClothing.accessories.length > 0">
-                      <p class="text-gray-400 text-sm mb-2">配饰:</p>
-                      <div class="flex flex-wrap gap-2">
-                        <div
-                          v-for="accessory in selectedClothing.accessories"
-                          :key="accessory.id"
-                          class="flex items-center space-x-2 bg-gray-700 rounded-full px-3 py-1"
-                        >
-                          <img :src="accessory.thumbnail" class="w-4 h-4 rounded-full object-cover" />
-                          <span class="text-white text-xs">{{ accessory.name }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          <!-- Generate Button -->
+          <button
+            @click="generateImages"
+            :disabled="!selectedModel || (!selectedTop && !uploadedTop) || !customPrompt.trim() || isGenerating"
+            class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
+          >
+            <span v-if="isGenerating">生成中...</span>
+            <span v-else>生成 {{ generationCount }} 张模特图</span>
+          </button>
 
-                <!-- Selected Background -->
-                <div class="bg-gray-800 rounded-xl p-6">
-                  <h3 class="text-base font-semibold text-white mb-4">背景场景</h3>
-                  <div class="flex items-center space-x-4">
-                    <img
-                      :src="selectedBackground?.thumbnail"
-                      :alt="selectedBackground?.name"
-                      class="w-20 h-15 object-cover rounded-lg"
-                    />
-                    <div>
-                      <p class="font-medium text-white">{{ selectedBackground?.name }}</p>
-                      <p class="text-sm text-gray-400">{{ selectedBackground?.category }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Generation Settings Summary -->
-                <div class="bg-gray-800 rounded-xl p-6">
-                  <h3 class="text-base font-semibold text-white mb-4">生成设置</h3>
-                  <div class="space-y-4 text-sm">
-                    <!-- Generation Count -->
-                    <div>
-                      <p class="text-gray-400">生成数量</p>
-                      <p class="text-white text-lg font-medium">{{ generationSettings.count }}张</p>
-                    </div>
-                    
-                    <!-- Prompt Preview -->
-                    <div v-if="generationSettings.prompt.trim()">
-                      <p class="text-gray-400 mb-2">提示词</p>
-                      <div class="bg-gray-900 rounded-lg p-3 max-h-24 overflow-y-auto">
-                        <p class="text-white text-xs leading-relaxed">{{ generationSettings.prompt }}</p>
-                      </div>
-                    </div>
-                    <div v-else>
-                      <p class="text-gray-400 mb-2">提示词</p>
-                      <p class="text-gray-500 text-xs">未设置自定义提示词，将使用默认设置</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Generation Button -->
-                <div class="mt-8">
-                  <button
-                    @click="generateModel"
-                    class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium py-4 px-6 rounded-lg transition-all hover:scale-105 shadow-lg shadow-primary-500/25 flex items-center justify-center space-x-3"
-                  >
-                    <Loader2 class="h-5 w-5" />
-                    <span>开始生成 AI 模特图</span>
-                  </button>
-
-                  <div class="text-center text-sm text-gray-400 mt-4">
-                    <p>预计生成时间: 30-60秒</p>
-                    <p>将消耗 {{ generationSettings.count }} 个积分</p>
-                  </div>
-                </div>
-              </div>
+          <div class="mt-4 text-center">
+            <p class="text-gray-500 text-sm">预计生成时间：3-5分钟</p>
+            <p class="text-gray-500 text-xs">需要选择模特、上装和prompt</p>
           </div>
         </div>
+      </div>
 
-      <!-- Navigation Buttons - Fixed at bottom -->
-      <div class="fixed bottom-0 left-0 right-0 lg:left-64 bg-gray-900/95 backdrop-blur-md border-t border-gray-800 px-4 lg:px-6 py-3 z-10 shadow-lg shadow-gray-900/20">
-        <div class="flex justify-between items-center w-full">
-          <button
-            @click="prevStep"
-            :disabled="currentStep === 1"
-            :class="[
-              'px-6 py-2 rounded-lg transition-colors',
-              currentStep === 1
-                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                : 'bg-gray-700 hover:bg-gray-600 text-white'
-            ]"
-          >
-            上一步
-          </button>
+      <!-- Right Panel - Results -->
+      <div class="hidden lg:block w-1/2 bg-gray-900 p-6 overflow-y-auto">
+        <div class="max-w-lg mx-auto">
+          <div class="mb-6">
+            <h2 class="text-lg font-semibold text-white mb-4">生成结果</h2>
+          </div>
 
-          <span class="text-sm text-gray-400">
-            步骤 {{ currentStep }} / {{ steps.length }}
-          </span>
+          <div v-if="isGenerating" class="text-center py-16">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+            <p class="text-gray-400">正在生成模特图...</p>
+          </div>
 
-          <button
-            @click="nextStep"
-            :disabled="isNextDisabled"
-            :class="[
-              'px-6 py-2 rounded-lg transition-all',
-              isNextDisabled
-                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white'
-            ]"
-          >
-            {{ currentStep === steps.length ? '开始生成' : '下一步' }}
-          </button>
+          <div v-else-if="generatedResults.length > 0" class="space-y-6">
+            <div class="grid grid-cols-2 gap-4">
+              <div
+                v-for="result in generatedResults"
+                :key="result.id"
+                class="relative group"
+              >
+                <img
+                  :src="result.url"
+                  :alt="`Generated result ${result.id}`"
+                  class="w-full aspect-[3/4] object-cover rounded-lg"
+                />
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg">
+                  <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="p-2 bg-white rounded-full text-gray-900 hover:bg-gray-100">
+                      <Download class="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Generation Info -->
+            <div class="bg-gray-800 p-4 rounded-lg">
+              <h3 class="text-white font-medium mb-2">生成信息</h3>
+              <div class="text-sm text-gray-400 space-y-1">
+                <p v-if="selectedModel">模特：{{ selectedModel.name }}</p>
+                <p v-if="selectedTop">上装：{{ selectedTop.name }}</p>
+                <p v-if="selectedBottom">下装：{{ selectedBottom.name }}</p>
+                <p v-if="selectedBackground">背景：{{ selectedBackground.name }}</p>
+                <p>风格：{{ styleOptions.find(s => s.value === selectedStyle)?.label }}</p>
+                <p v-if="customPrompt">Prompt：{{ customPrompt.length > 50 ? customPrompt.substring(0, 50) + '...' : customPrompt }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div v-else>
+            <div class="text-center py-16">
+              <h3 class="text-lg font-semibold text-white mb-4">优秀案例</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <div
+                  v-for="sample in sampleResults"
+                  :key="sample.id"
+                  class="relative"
+                >
+                  <img
+                    :src="sample.url"
+                    :alt="`Sample ${sample.id}`"
+                    class="w-full aspect-[3/4] object-cover rounded-lg opacity-60"
+                  />
+                </div>
+              </div>
+              <p class="text-gray-500 text-sm mt-4">选择模特和服装后开始生成</p>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -839,61 +464,10 @@ onMounted(() => {
   --primary-600: #6d28d9;
 }
 
-/* Range Slider Styling */
-.slider {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.slider::-webkit-slider-track {
-  background: #374151;
-  height: 8px;
-  border-radius: 4px;
-}
-
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  background: #7c3aed;
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  border: 2px solid #1f2937;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.slider::-webkit-slider-thumb:hover {
-  background: #8b5cf6;
-  transform: scale(1.1);
-}
-
-.slider::-moz-range-track {
-  background: #374151;
-  height: 8px;
-  border-radius: 4px;
-  border: none;
-}
-
-.slider::-moz-range-thumb {
-  background: #7c3aed;
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  border: 2px solid #1f2937;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-}
-
-.slider::-moz-range-thumb:hover {
-  background: #8b5cf6;
-  transform: scale(1.1);
-}
-
-/* Bottom navigation backdrop */
-.backdrop-blur-md {
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

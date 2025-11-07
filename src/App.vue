@@ -6,7 +6,9 @@ import NavBar from './components/NavBar.vue'
 const route = useRoute()
 
 const showNavBar = computed(() => {
-  return !route.path.startsWith('/dashboard')
+  // Hide NavBar for all authenticated/dashboard pages
+  const hiddenPaths = ['/dashboard', '/model-generation', '/pose-generation', '/upscale', '/projects']
+  return !hiddenPaths.some(path => route.path.startsWith(path))
 })
 </script>
 

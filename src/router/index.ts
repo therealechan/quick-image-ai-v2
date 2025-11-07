@@ -27,40 +27,42 @@ const router = createRouter({
       name: 'signup',
       component: () => import('../views/SignUpView.vue')
     },
+    // AI功能主路由 - 重定向到模特图
     {
       path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('../views/DashboardView.vue')
+      redirect: '/model-generation'
     },
+    // AI功能直接路由
     {
-      path: '/dashboard/projects',
-      name: 'projects',
-      component: () => import('../views/ProjectListView.vue')
-    },
-    {
-      path: '/dashboard/projects/:id',
-      name: 'project-show',
-      component: () => import('../views/ProjectShowView.vue')
-    },
-    {
-      path: '/dashboard/projects/:id/create',
-      name: 'service-selector',
-      component: () => import('../views/ServiceTypeSelector.vue')
-    },
-    {
-      path: '/dashboard/projects/:id/model',
+      path: '/model-generation',
       name: 'model-generation',
       component: () => import('../views/ProjectDetailView.vue')
     },
     {
-      path: '/dashboard/projects/:id/pose',
+      path: '/pose-generation',
       name: 'pose-generation',
       component: () => import('../views/PoseGenerationView.vue')
     },
     {
-      path: '/dashboard/projects/:id/upscale',
+      path: '/upscale',
       name: 'upscale-generation',
       component: () => import('../views/UpscaleView.vue')
+    },
+    // 保留项目管理功能
+    {
+      path: '/projects',
+      name: 'projects',
+      component: () => import('../views/ProjectListView.vue')
+    },
+    {
+      path: '/projects/:id',
+      name: 'project-show',
+      component: () => import('../views/ProjectShowView.vue')
+    },
+    {
+      path: '/projects/:id/create',
+      name: 'service-selector',
+      component: () => import('../views/ServiceTypeSelector.vue')
     },
   ],
 })

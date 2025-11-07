@@ -68,7 +68,7 @@ const handleSignUp = async () => {
     const result = await authService.signUp(credentials)
 
     if (result.success) {
-      router.push('/dashboard')
+      router.push('/model-generation')
     } else {
       error.value = result.error || '注册失败'
     }

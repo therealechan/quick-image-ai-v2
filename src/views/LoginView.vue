@@ -37,7 +37,7 @@ const handleLogin = async () => {
     const result = await authService.login(credentials)
 
     if (result.success) {
-      router.push('/dashboard')
+      router.push('/model-generation')
     } else {
       error.value = result.error || '登录失败'
     }
