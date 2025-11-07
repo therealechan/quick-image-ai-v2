@@ -1,0 +1,292 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { authService } from '../services/auth'
+import DashboardSidebar from '../components/DashboardSidebar.vue'
+import { BarChart3, Image, Zap, TrendingUp, Plus, Menu, Activity, Clock } from 'lucide-vue-next'
+
+const router = useRouter()
+
+const isMobileMenuOpen = ref(false)
+
+const mockStats = ref({
+  totalImages: 1247,
+  totalProjects: 23,
+  monthlyImages: 186,
+  creditsRemaining: 850,
+  todayImages: 12
+})
+
+const mockRecentProjects = ref([
+  {
+    id: '1',
+    name: '产品摄影系列',
+    imageCount: 24,
+    lastModified: '2小时前',
+    thumbnail: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=150&h=150&fit=crop',
+    status: 'completed'
+  },
+  {
+    id: '2', 
+    name: '品牌宣传图',
+    imageCount: 15,
+    lastModified: '1天前',
+    thumbnail: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=150&h=150&fit=crop',
+    status: 'processing'
+  },
+  {
+    id: '3',
+    name: 'Logo设计方案',
+    imageCount: 8,
+    lastModified: '3天前', 
+    thumbnail: 'https://images.unsplash.com/photo-1634942537034-2531766767d1?w=150&h=150&fit=crop',
+    status: 'completed'
+  }
+])
+
+const mockRecentImages = ref([
+  'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1634942537034-2531766767d1?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=200&h=200&fit=crop'
+])
+
+const mockRecentActivity = ref([
+  { action: '生成图片', project: '产品摄影系列', time: '5分钟前' },
+  { action: '创建项目', project: '品牌宣传图', time: '1小时前' },
+  { action: '编辑设置', project: 'Logo设计方案', time: '3小时前' },
+  { action: '下载图片', project: '产品摄影系列', time: '5小时前' }
+])
+
+const toggleMobileMenu = () => {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value
+}
+
+const closeMobileMenu = () => {
+  isMobileMenuOpen.value = false
+}
+
+const navigateToNewProject = () => {
+  router.push('/dashboard/projects')
+}
+
+onMounted(() => {
+  if (!authService.isAuthenticated()) {
+    router.push('/login')
+  }
+})
+</script>
+
+<template>
+  <div class="h-screen bg-gray-950 flex overflow-hidden">
+    <!-- Sidebar -->
+    <DashboardSidebar
+      :is-mobile-menu-open="isMobileMenuOpen"
+      @toggle-mobile-menu="toggleMobileMenu"
+      @close-mobile-menu="closeMobileMenu"
+    />
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+      <!-- Mobile Header -->
+      <div class="lg:hidden bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+        <h1 class="text-xl font-bold text-white">Dashboard</h1>
+        <button
+          @click="toggleMobileMenu"
+          class="p-2 text-gray-400 hover:text-white"
+        >
+          <Menu class="w-6 h-6" />
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6 lg:p-8">
+        <!-- Welcome Section -->
+        <div class="mb-8">
+          <h1 class="text-2xl font-bold text-white mb-2">欢迎回来！</h1>
+          <p class="text-sm text-gray-400">这是你的创作概览和快速操作面板</p>
+        </div>
+
+        <!-- Quick Action -->
+        <div class="mb-8">
+          <button
+            @click="navigateToNewProject"
+            class="w-full lg:w-auto bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white p-6 rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-primary-500/25 flex items-center space-x-4"
+          >
+            <div class="p-3 bg-white/10 rounded-lg">
+              <Plus class="h-6 w-6" />
+            </div>
+            <div class="text-left">
+              <h3 class="text-lg font-semibold">创建新项目</h3>
+              <p class="text-sm text-primary-100">使用AI生成精美图像</p>
+            </div>
+          </button>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <div class="flex items-center space-x-3">
+              <div class="p-2 bg-blue-500/20 rounded-lg">
+                <Image class="h-6 w-6 text-blue-400" />
+              </div>
+              <div>
+                <p class="text-gray-400 text-xs">总图片</p>
+                <p class="text-xl font-bold text-white">{{ mockStats.totalImages.toLocaleString() }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <div class="flex items-center space-x-3">
+              <div class="p-2 bg-green-500/20 rounded-lg">
+                <BarChart3 class="h-6 w-6 text-green-400" />
+              </div>
+              <div>
+                <p class="text-gray-400 text-xs">项目</p>
+                <p class="text-xl font-bold text-white">{{ mockStats.totalProjects }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <div class="flex items-center space-x-3">
+              <div class="p-2 bg-purple-500/20 rounded-lg">
+                <TrendingUp class="h-6 w-6 text-purple-400" />
+              </div>
+              <div>
+                <p class="text-gray-400 text-xs">本月</p>
+                <p class="text-xl font-bold text-white">{{ mockStats.monthlyImages }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <div class="flex items-center space-x-3">
+              <div class="p-2 bg-yellow-500/20 rounded-lg">
+                <Zap class="h-6 w-6 text-yellow-400" />
+              </div>
+              <div>
+                <p class="text-gray-400 text-xs">积分</p>
+                <p class="text-xl font-bold text-white">{{ mockStats.creditsRemaining }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <!-- Recent Projects -->
+          <div class="xl:col-span-2 bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-lg font-semibold text-white">最近的项目</h2>
+              <button class="text-sm text-primary-400 hover:text-primary-300 transition-colors">
+                查看全部
+              </button>
+            </div>
+            <div class="space-y-4">
+              <div
+                v-for="project in mockRecentProjects"
+                :key="project.id"
+                class="flex items-center space-x-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-750 transition-colors cursor-pointer"
+              >
+                <img
+                  :src="project.thumbnail"
+                  :alt="project.name"
+                  class="w-12 h-12 rounded-lg object-cover"
+                />
+                <div class="flex-1">
+                  <h3 class="text-white font-medium">{{ project.name }}</h3>
+                  <p class="text-gray-400 text-sm">{{ project.imageCount }} 张图片 • {{ project.lastModified }}</p>
+                </div>
+                <div class="flex items-center">
+                  <span
+                    :class="[
+                      'px-2 py-1 rounded-full text-xs',
+                      project.status === 'completed'
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-yellow-500/20 text-yellow-400'
+                    ]"
+                  >
+                    {{ project.status === 'completed' ? '已完成' : '处理中' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="space-y-6">
+            <!-- Recent Images -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-semibold text-white">最新图片</h2>
+                <button class="text-sm text-primary-400 hover:text-primary-300 transition-colors">
+                  查看更多
+                </button>
+              </div>
+              <div class="grid grid-cols-3 gap-3">
+                <div
+                  v-for="(image, index) in mockRecentImages.slice(0, 6)"
+                  :key="index"
+                  class="aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform cursor-pointer"
+                >
+                  <img
+                    :src="image"
+                    :alt="`Recent image ${index + 1}`"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+              <div class="flex items-center space-x-2 mb-4">
+                <Activity class="h-5 w-5 text-primary-400" />
+                <h2 class="text-base font-semibold text-white">最近活动</h2>
+              </div>
+              <div class="space-y-4">
+                <div
+                  v-for="(activity, index) in mockRecentActivity"
+                  :key="index"
+                  class="flex items-center space-x-3"
+                >
+                  <div class="w-2 h-2 bg-primary-500 rounded-full"></div>
+                  <div class="flex-1">
+                    <p class="text-white text-sm">{{ activity.action }}</p>
+                    <p class="text-gray-400 text-xs">{{ activity.project }}</p>
+                  </div>
+                  <div class="flex items-center space-x-1 text-gray-500">
+                    <Clock class="h-3 w-3" />
+                    <span class="text-xs">{{ activity.time }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<style scoped>
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+:root {
+  --primary-400: #8b5cf6;
+  --primary-500: #7c3aed;
+  --primary-600: #6d28d9;
+}
+
+.bg-gray-750 {
+  background-color: #374151;
+}
+</style>
