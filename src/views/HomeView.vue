@@ -6,10 +6,12 @@ import TestimonialSection from '../components/TestimonialSection.vue'
 import PricingSection from '../components/PricingSection.vue'
 import CtaSection from '../components/CtaSection.vue'
 import FooterSection from '../components/FooterSection.vue'
+import MouseTrail from '../components/MouseTrail.vue'
 </script>
 
 <template>
   <main>
+    <MouseTrail />
     <HeroSection />
     <FeaturesSection />
     <HowItWorksSection />
