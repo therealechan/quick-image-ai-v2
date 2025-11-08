@@ -192,10 +192,10 @@ function createLines(): void {
 }
 
 function updatePosition(e: MouseEvent | TouchEvent): void {
-  if ("touches" in e) {
+  if ("touches" in e && e.touches[0]) {
     pos.x = e.touches[0].pageX;
     pos.y = e.touches[0].pageY;
-  } else {
+  } else if ("clientX" in e) {
     pos.x = e.clientX;
     pos.y = e.clientY;
   }
@@ -203,7 +203,7 @@ function updatePosition(e: MouseEvent | TouchEvent): void {
 }
 
 function handleTouchMove(e: TouchEvent): void {
-  if (e.touches.length === 1) {
+  if (e.touches.length === 1 && e.touches[0]) {
     pos.x = e.touches[0].pageX;
     pos.y = e.touches[0].pageY;
   }
@@ -219,8 +219,10 @@ function render(): void {
 
     for (let t = 0; t < E.trails; t++) {
       const e = lines[t];
-      e.update();
-      e.draw(ctx);
+      if (e) {
+        e.update();
+        e.draw(ctx);
+      }
     }
 
     ctx.frame = (ctx.frame || 0) + 1;
