@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
 import { Upload, Download, Camera } from 'lucide-vue-next'
 
@@ -18,6 +18,7 @@ const customPrompt = ref('')
 
 // Aspect ratio selection
 const selectedAspectRatio = ref<any>(null)
+const showAllAspectRatios = ref(false)
 
 // Mock data
 const poseTemplates = ref([
@@ -41,18 +42,27 @@ const modelGallery = ref([
 
 // Aspect ratio options
 const aspectRatioOptions = ref([
-  { id: 'auto', name: 'Auto', width: 4, height: 3, isAuto: true },
-  { id: '1:1', name: '1:1', width: 1, height: 1 },
-  { id: '9:16', name: '9:16', width: 9, height: 16 },
-  { id: '16:9', name: '16:9', width: 16, height: 9 },
-  { id: '21:9', name: '21:9', width: 21, height: 9 },
-  { id: '3:4', name: '3:4', width: 3, height: 4 },
-  { id: '4:3', name: '4:3', width: 4, height: 3 },
-  { id: '3:2', name: '3:2', width: 3, height: 2 },
-  { id: '2:3', name: '2:3', width: 2, height: 3 },
-  { id: '5:4', name: '5:4', width: 5, height: 4 },
-  { id: '4:5', name: '4:5', width: 4, height: 5 }
+  { id: 'auto', name: 'Auto', width: 4, height: 3, isAuto: true, isDefault: true },
+  { id: '1:1', name: '1:1', width: 1, height: 1, isDefault: true },
+  { id: '9:16', name: '9:16', width: 9, height: 16, isDefault: true },
+  { id: '3:4', name: '3:4', width: 3, height: 4, isDefault: true },
+  { id: '2:3', name: '2:3', width: 2, height: 3, isDefault: true },
+  { id: '4:5', name: '4:5', width: 4, height: 5, isDefault: true },
+  { id: '16:9', name: '16:9', width: 16, height: 9, isDefault: false },
+  { id: '21:9', name: '21:9', width: 21, height: 9, isDefault: false },
+  { id: '4:3', name: '4:3', width: 4, height: 3, isDefault: false },
+  { id: '3:2', name: '3:2', width: 3, height: 2, isDefault: false },
+  { id: '5:4', name: '5:4', width: 5, height: 4, isDefault: false }
 ])
+
+// Computed properties for aspect ratios
+const defaultAspectRatios = computed(() => 
+  aspectRatioOptions.value.filter(ratio => ratio.isDefault)
+)
+
+const extraAspectRatios = computed(() => 
+  aspectRatioOptions.value.filter(ratio => !ratio.isDefault)
+)
 
 // Prompt templates
 const promptTemplates = ref([
@@ -277,9 +287,11 @@ onMounted(() => {
           <!-- Aspect Ratio Selection -->
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">图片比例</h2>
-            <div class="grid grid-cols-5 gap-2">
+            
+            <!-- Default aspect ratios (always shown) -->
+            <div class="grid grid-cols-3 gap-2 mb-3">
               <div
-                v-for="ratio in aspectRatioOptions"
+                v-for="ratio in defaultAspectRatios"
                 :key="ratio.id"
                 @click="selectAspectRatio(ratio)"
                 :class="[
@@ -288,35 +300,98 @@ onMounted(() => {
                 ]"
               >
                 <!-- Visual preview of ratio -->
-                <div class="flex items-center justify-center mb-2 h-12">
+                <div class="flex items-center justify-center mb-2 h-10">
                   <div 
                     :class="[
                       'bg-gray-600 border border-gray-500 rounded-sm',
                       selectedAspectRatio?.id === ratio.id ? 'bg-primary-400' : ''
                     ]"
                     :style="{
-                      width: Math.min(32, (ratio.width / Math.max(ratio.width, ratio.height)) * 32) + 'px',
-                      height: Math.min(32, (ratio.height / Math.max(ratio.width, ratio.height)) * 32) + 'px'
+                      width: Math.min(28, (ratio.width / Math.max(ratio.width, ratio.height)) * 28) + 'px',
+                      height: Math.min(28, (ratio.height / Math.max(ratio.width, ratio.height)) * 28) + 'px'
                     }"
                   ></div>
                 </div>
                 <!-- Ratio label -->
                 <div class="text-center">
                   <span :class="[
-                    'text-sm font-medium',
+                    'text-xs font-medium',
                     selectedAspectRatio?.id === ratio.id ? 'text-white' : 'text-gray-300'
                   ]">{{ ratio.name }}</span>
                 </div>
                 <!-- Selected indicator -->
                 <div v-if="selectedAspectRatio?.id === ratio.id" class="absolute top-1 right-1">
-                  <div class="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
-                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <div class="w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center">
+                    <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
                   </div>
                 </div>
               </div>
             </div>
+
+            <!-- Toggle button for more options -->
+            <button
+              @click="showAllAspectRatios = !showAllAspectRatios"
+              class="w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg transition-colors border border-gray-700 mb-3"
+            >
+              <span v-if="!showAllAspectRatios">显示更多比例选项 ({{ extraAspectRatios.length }})</span>
+              <span v-else>收起比例选项</span>
+              <svg 
+                :class="[
+                  'w-4 h-4 ml-2 inline transition-transform',
+                  showAllAspectRatios ? 'rotate-180' : ''
+                ]" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+
+            <!-- Extra aspect ratios (collapsible) -->
+            <div v-if="showAllAspectRatios" class="grid grid-cols-5 gap-2 mb-3">
+              <div
+                v-for="ratio in extraAspectRatios"
+                :key="ratio.id"
+                @click="selectAspectRatio(ratio)"
+                :class="[
+                  'relative cursor-pointer transition-all hover:scale-105 border-2 rounded-lg p-2',
+                  selectedAspectRatio?.id === ratio.id ? 'border-primary-500 bg-primary-500/10' : 'border-gray-700 hover:border-gray-600 bg-gray-800'
+                ]"
+              >
+                <!-- Visual preview of ratio -->
+                <div class="flex items-center justify-center mb-1 h-8">
+                  <div 
+                    :class="[
+                      'bg-gray-600 border border-gray-500 rounded-sm',
+                      selectedAspectRatio?.id === ratio.id ? 'bg-primary-400' : ''
+                    ]"
+                    :style="{
+                      width: Math.min(24, (ratio.width / Math.max(ratio.width, ratio.height)) * 24) + 'px',
+                      height: Math.min(24, (ratio.height / Math.max(ratio.width, ratio.height)) * 24) + 'px'
+                    }"
+                  ></div>
+                </div>
+                <!-- Ratio label -->
+                <div class="text-center">
+                  <span :class="[
+                    'text-xs font-medium',
+                    selectedAspectRatio?.id === ratio.id ? 'text-white' : 'text-gray-300'
+                  ]">{{ ratio.name }}</span>
+                </div>
+                <!-- Selected indicator -->
+                <div v-if="selectedAspectRatio?.id === ratio.id" class="absolute top-1 right-1">
+                  <div class="w-3 h-3 bg-primary-500 rounded-full flex items-center justify-center">
+                    <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div v-if="selectedAspectRatio" class="mt-3 text-center">
               <span class="text-primary-400 text-sm">已选择: {{ selectedAspectRatio.name }}</span>
             </div>
