@@ -26,7 +26,7 @@ const emit = defineEmits<{
 }>()
 
 const historyItems = ref<HistoryItem[]>([])
-const isCollapsed = ref(props.isCollapsed || false)
+const isCollapsed = ref(props.isCollapsed ?? true)
 const searchQuery = ref('')
 const filterType = ref<'all' | 'favorites' | 'recent'>('all')
 

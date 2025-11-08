@@ -10,12 +10,33 @@ const isMobileMenuOpen = ref(false)
 const isHistoryCollapsed = ref(false)
 const historyRef = ref<InstanceType<typeof GenerationHistory>>()
 
-// Selection states - Updated for multi-select
+// Queue Item interface
+interface QueueItem {
+  id: string
+  model: any
+  top: any  
+  bottom: any
+  accessory?: any
+  background?: any
+  prompt: string
+  promptTemplate?: any
+  count: number
+  createdAt: Date
+}
+
+// Selection states - Changed to single select for queue mode
 const selectedTops = ref<any[]>([])
 const selectedBottoms = ref<any[]>([])
 const selectedModels = ref<any[]>([])
 const selectedBackground = ref<any>(null)
 const selectedAccessories = ref<any[]>([])
+
+// Queue management states
+const generationQueue = ref<QueueItem[]>([])
+const showQueuePanel = ref(false)
+const editingQueueItem = ref<QueueItem | null>(null)
+
+// Legacy batch mode states (keep for compatibility)
 const selectedCombinations = ref<any[]>([]) // Generated combinations
 const showCombinationPreview = ref(false)
 const uploadedTop = ref<string | null>(null)
@@ -110,59 +131,23 @@ const closeMobileMenu = () => {
 }
 
 const selectTop = (item: any) => {
-  if (!batchMode.value) {
-    selectedTops.value = [item]
-    return
-  }
-  
-  const index = selectedTops.value.findIndex(top => top.id === item.id)
-  if (index > -1) {
-    selectedTops.value.splice(index, 1)
-  } else {
-    selectedTops.value.push(item)
-  }
+  // Always single select now
+  selectedTops.value = [item]
 }
 
 const selectBottom = (item: any) => {
-  if (!batchMode.value) {
-    selectedBottoms.value = [item]
-    return
-  }
-  
-  const index = selectedBottoms.value.findIndex(bottom => bottom.id === item.id)
-  if (index > -1) {
-    selectedBottoms.value.splice(index, 1)
-  } else {
-    selectedBottoms.value.push(item)
-  }
+  // Always single select now
+  selectedBottoms.value = [item]
 }
 
 const selectModel = (model: any) => {
-  if (!batchMode.value) {
-    selectedModels.value = [model]
-    return
-  }
-  
-  const index = selectedModels.value.findIndex(m => m.id === model.id)
-  if (index > -1) {
-    selectedModels.value.splice(index, 1)
-  } else {
-    selectedModels.value.push(model)
-  }
+  // Always single select now
+  selectedModels.value = [model]
 }
 
 const selectAccessory = (accessory: any) => {
-  if (!batchMode.value) {
-    selectedAccessories.value = [accessory]
-    return
-  }
-  
-  const index = selectedAccessories.value.findIndex(acc => acc.id === accessory.id)
-  if (index > -1) {
-    selectedAccessories.value.splice(index, 1)
-  } else {
-    selectedAccessories.value.push(accessory)
-  }
+  // Always single select now
+  selectedAccessories.value = [accessory]
 }
 
 const selectBackground = (background: any) => {
@@ -321,7 +306,73 @@ const generateSingleImage = () => {
   }, 4000)
 }
 
+const generateQueueItems = () => {
+  if (generationQueue.value.length === 0) {
+    alert('队列为空，请先添加搭配到队列中')
+    return
+  }
+  
+  if (!confirm(`确定要生成队列中的 ${generationQueue.value.length} 个搭配吗？\n总共将生成 ${generationQueue.value.reduce((sum, item) => sum + item.count, 0)} 张图片`)) {
+    return
+  }
+  
+  isGenerating.value = true
+  
+  // 模拟批量生成过程
+  setTimeout(() => {
+    const mockImages = [
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=600&fit=crop'
+    ]
+    
+    const results: any[] = []
+    let imageIndex = 0
+    
+    generationQueue.value.forEach((queueItem) => {
+      for (let i = 0; i < queueItem.count; i++) {
+        results.push({
+          id: `${queueItem.id}-${i + 1}`,
+          url: mockImages[imageIndex % mockImages.length],
+          queueItem: queueItem,
+          config: {
+            model: queueItem.model.name,
+            top: queueItem.top.name,
+            bottom: queueItem.bottom.name,
+            accessory: queueItem.accessory?.name || null,
+            background: queueItem.background?.name || '默认背景',
+            prompt: queueItem.prompt.substring(0, 50) + (queueItem.prompt.length > 50 ? '...' : '')
+          }
+        })
+        imageIndex++
+      }
+    })
+    
+    generatedResults.value = results
+    
+    // Save to history with queue data
+    saveQueueToHistory()
+    
+    // Clear the queue after successful generation
+    generationQueue.value = []
+    saveQueueToStorage()
+    
+    isGenerating.value = false
+  }, 6000)
+}
+
+// Legacy batch function for compatibility
 const generateBatchImages = () => {
+  // For new queue mode, redirect to queue generation
+  if (batchMode.value) {
+    generateQueueItems()
+    return
+  }
+  
+  // Keep old logic for any legacy usage
   const selectedCombos = selectedCombinations.value.filter(combo => combo.selected)
   
   if (selectedCombos.length === 0) {
@@ -545,6 +596,29 @@ const saveToHistory = () => {
   })
 }
 
+// Save queue generation to history
+const saveQueueToHistory = () => {
+  if (!historyRef.value || generationQueue.value.length === 0) return
+  
+  // Create a combined history entry for the entire queue
+  const allModels = generationQueue.value.map(item => item.model)
+  const allTops = generationQueue.value.map(item => item.top)
+  const allBottoms = generationQueue.value.map(item => item.bottom)
+  const allAccessories = generationQueue.value.filter(item => item.accessory).map(item => item.accessory)
+  const combinedPrompt = generationQueue.value.map(item => `${item.count}x ${item.prompt}`).join(' | ')
+  
+  historyRef.value.addHistoryItem({
+    models: allModels,
+    tops: allTops,
+    bottoms: allBottoms,
+    accessories: allAccessories,
+    background: generationQueue.value[0]?.background || null,
+    prompt: combinedPrompt,
+    results: generatedResults.value,
+    batchMode: true
+  })
+}
+
 const useHistoryItem = (item: any) => {
   // Clear current selections
   selectedModels.value = []
@@ -594,8 +668,174 @@ const toggleHistoryCollapse = () => {
   isHistoryCollapsed.value = !isHistoryCollapsed.value
 }
 
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
+
+// Queue management functions
+const validateCurrentSelection = () => {
+  const errors = []
+  
+  if (selectedModels.value.length === 0 && !uploadedModel.value) {
+    errors.push('请选择模特')
+  }
+  
+  if (selectedTops.value.length === 0 && !uploadedTop.value) {
+    errors.push('请选择上装')
+  }
+  
+  if (selectedBottoms.value.length === 0 && !uploadedBottom.value) {
+    errors.push('请选择下装')
+  }
+  
+  if (!customPrompt.value.trim()) {
+    errors.push('请输入Prompt')
+  }
+  
+  if (generationCount.value < 1) {
+    errors.push('生成数量必须大于0')
+  }
+  
+  return errors
+}
+
+const addToQueue = () => {
+  const errors = validateCurrentSelection()
+  if (errors.length > 0) {
+    alert(errors.join('\n'))
+    return
+  }
+  
+  const queueItem: QueueItem = {
+    id: Date.now().toString(),
+    model: uploadedModel.value ? 
+      { id: 'uploaded', name: '上传的模特', thumbnail: uploadedModel.value } : 
+      selectedModels.value[0],
+    top: uploadedTop.value ? 
+      { id: 'uploaded', name: '上传的上装', thumbnail: uploadedTop.value } : 
+      selectedTops.value[0],
+    bottom: uploadedBottom.value ? 
+      { id: 'uploaded', name: '上传的下装', thumbnail: uploadedBottom.value } : 
+      selectedBottoms.value[0],
+    accessory: uploadedAccessory.value ? 
+      { id: 'uploaded', name: '上传的配饰', thumbnail: uploadedAccessory.value } : 
+      selectedAccessories.value[0],
+    background: selectedBackground.value,
+    prompt: customPrompt.value,
+    promptTemplate: selectedPromptTemplate.value,
+    count: generationCount.value,
+    createdAt: new Date()
+  }
+  
+  generationQueue.value.push(queueItem)
+  clearCurrentSelection()
+  saveQueueToStorage()
+  
+  // Scroll to top for better UX
+  scrollToTop()
+}
+
+const clearCurrentSelection = () => {
+  selectedModels.value = []
+  selectedTops.value = []
+  selectedBottoms.value = []
+  selectedAccessories.value = []
+  selectedBackground.value = null
+  uploadedModel.value = null
+  uploadedTop.value = null
+  uploadedBottom.value = null
+  uploadedAccessory.value = null
+  customPrompt.value = ''
+  selectedPromptTemplate.value = null
+  generationCount.value = 3
+}
+
+const removeFromQueue = (id: string) => {
+  generationQueue.value = generationQueue.value.filter(item => item.id !== id)
+  saveQueueToStorage()
+}
+
+const editQueueItem = (item: QueueItem) => {
+  // Load the queue item data back to current selection
+  if (item.model.id === 'uploaded') {
+    uploadedModel.value = item.model.thumbnail
+    selectedModels.value = []
+  } else {
+    selectedModels.value = [item.model]
+    uploadedModel.value = null
+  }
+  
+  if (item.top.id === 'uploaded') {
+    uploadedTop.value = item.top.thumbnail
+    selectedTops.value = []
+  } else {
+    selectedTops.value = [item.top]
+    uploadedTop.value = null
+  }
+  
+  if (item.bottom.id === 'uploaded') {
+    uploadedBottom.value = item.bottom.thumbnail
+    selectedBottoms.value = []
+  } else {
+    selectedBottoms.value = [item.bottom]
+    uploadedBottom.value = null
+  }
+  
+  if (item.accessory) {
+    if (item.accessory.id === 'uploaded') {
+      uploadedAccessory.value = item.accessory.thumbnail
+      selectedAccessories.value = []
+    } else {
+      selectedAccessories.value = [item.accessory]
+      uploadedAccessory.value = null
+    }
+  }
+  
+  selectedBackground.value = item.background
+  customPrompt.value = item.prompt
+  selectedPromptTemplate.value = item.promptTemplate
+  generationCount.value = item.count
+  
+  // Remove the item from queue after loading it for editing
+  removeFromQueue(item.id)
+  editingQueueItem.value = null
+  
+  // Scroll to top for better UX
+  scrollToTop()
+}
+
+const clearQueue = () => {
+  if (confirm(`确定要清空队列中的 ${generationQueue.value.length} 个搭配吗？`)) {
+    generationQueue.value = []
+    saveQueueToStorage()
+  }
+}
+
+const saveQueueToStorage = () => {
+  localStorage.setItem('modelGenerationQueue', JSON.stringify(generationQueue.value))
+}
+
+const loadQueueFromStorage = () => {
+  const stored = localStorage.getItem('modelGenerationQueue')
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored)
+      generationQueue.value = parsed.map((item: any) => ({
+        ...item,
+        createdAt: new Date(item.createdAt)
+      }))
+    } catch (error) {
+      console.error('Failed to load queue from localStorage:', error)
+    }
+  }
+}
+
 onMounted(() => {
   // 页面初始化
+  loadQueueFromStorage()
 })
 </script>
 
@@ -663,8 +903,8 @@ onMounted(() => {
           <div class="mb-8">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold text-white">选择模特</h2>
-              <div v-if="batchMode && selectedModels.length > 0" class="text-xs text-primary-400">
-                已选择 {{ selectedModels.length }} 位
+              <div v-if="selectedModels.length > 0" class="text-xs text-primary-400">
+                已选择: {{ selectedModels[0].name }}
               </div>
             </div>
             <div class="grid grid-cols-4 gap-3">
@@ -674,7 +914,7 @@ onMounted(() => {
                 @click="selectModel(model)"
                 :class="[
                   'relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  (batchMode ? selectedModels.some(m => m.id === model.id) : selectedModels[0]?.id === model.id) ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                  selectedModels[0]?.id === model.id ? 'border-primary-500 ring-1 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -682,17 +922,10 @@ onMounted(() => {
                   :alt="model.name"
                   class="w-full h-full object-cover"
                 />
-                <!-- Multi-select checkbox for batch mode -->
-                <div v-if="batchMode" class="absolute top-2 right-2">
-                  <div 
-                    :class="[
-                      'w-5 h-5 rounded border-2 flex items-center justify-center',
-                      selectedModels.some(m => m.id === model.id) 
-                        ? 'bg-primary-500 border-primary-500' 
-                        : 'bg-gray-800 border-gray-600'
-                    ]"
-                  >
-                    <svg v-if="selectedModels.some(m => m.id === model.id)" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <!-- Selected indicator -->
+                <div v-if="selectedModels[0]?.id === model.id" class="absolute top-2 right-2">
+                  <div class="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
                   </div>
@@ -729,8 +962,8 @@ onMounted(() => {
           <div class="mb-8">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold text-white">选择上装</h2>
-              <div v-if="batchMode && selectedTops.length > 0" class="text-xs text-primary-400">
-                已选择 {{ selectedTops.length }} 件
+              <div v-if="selectedTops.length > 0" class="text-xs text-primary-400">
+                已选择: {{ selectedTops[0].name }}
               </div>
             </div>
             <div class="grid grid-cols-4 gap-3 mb-4">
@@ -740,7 +973,7 @@ onMounted(() => {
                 @click="selectTop(item)"
                 :class="[
                   'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  (batchMode ? selectedTops.some(top => top.id === item.id) : selectedTops[0]?.id === item.id) ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                  selectedTops[0]?.id === item.id ? 'border-primary-500 ring-1 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -748,17 +981,10 @@ onMounted(() => {
                   :alt="item.name"
                   class="w-full h-full object-cover"
                 />
-                <!-- Multi-select checkbox for batch mode -->
-                <div v-if="batchMode" class="absolute top-2 right-2">
-                  <div 
-                    :class="[
-                      'w-5 h-5 rounded border-2 flex items-center justify-center',
-                      selectedTops.some(top => top.id === item.id) 
-                        ? 'bg-primary-500 border-primary-500' 
-                        : 'bg-gray-800 border-gray-600'
-                    ]"
-                  >
-                    <svg v-if="selectedTops.some(top => top.id === item.id)" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <!-- Selected indicator -->
+                <div v-if="selectedTops[0]?.id === item.id" class="absolute top-2 right-2">
+                  <div class="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
                   </div>
@@ -789,8 +1015,8 @@ onMounted(() => {
           <div class="mb-8">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold text-white">选择下装</h2>
-              <div v-if="batchMode && selectedBottoms.length > 0" class="text-xs text-primary-400">
-                已选择 {{ selectedBottoms.length }} 件
+              <div v-if="selectedBottoms.length > 0" class="text-xs text-primary-400">
+                已选择: {{ selectedBottoms[0].name }}
               </div>
             </div>
             <div class="grid grid-cols-4 gap-3 mb-4">
@@ -800,7 +1026,7 @@ onMounted(() => {
                 @click="selectBottom(item)"
                 :class="[
                   'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  (batchMode ? selectedBottoms.some(bottom => bottom.id === item.id) : selectedBottoms[0]?.id === item.id) ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                  selectedBottoms[0]?.id === item.id ? 'border-primary-500 ring-1 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -808,17 +1034,10 @@ onMounted(() => {
                   :alt="item.name"
                   class="w-full h-full object-cover"
                 />
-                <!-- Multi-select checkbox for batch mode -->
-                <div v-if="batchMode" class="absolute top-2 right-2">
-                  <div 
-                    :class="[
-                      'w-5 h-5 rounded border-2 flex items-center justify-center',
-                      selectedBottoms.some(bottom => bottom.id === item.id) 
-                        ? 'bg-primary-500 border-primary-500' 
-                        : 'bg-gray-800 border-gray-600'
-                    ]"
-                  >
-                    <svg v-if="selectedBottoms.some(bottom => bottom.id === item.id)" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <!-- Selected indicator -->
+                <div v-if="selectedBottoms[0]?.id === item.id" class="absolute top-2 right-2">
+                  <div class="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
                   </div>
@@ -957,52 +1176,169 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Combination Preview Button (Batch Mode) -->
-          <div v-if="batchMode" class="mb-4">
+          <!-- Queue Actions (Batch Mode) -->
+          <div v-if="batchMode" class="mb-4 space-y-3">
             <button
-              @click="previewCombinations"
-              :disabled="(selectedModels.length === 0 && !uploadedModel) || (selectedTops.length === 0 && !uploadedTop) || (selectedBottoms.length === 0 && !uploadedBottom)"
-              class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed mb-3"
+              @click="addToQueue"
+              :disabled="validateCurrentSelection().length > 0"
+              class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
             >
-              预览搭配组合 ({{ (selectedModels.length || (uploadedModel ? 1 : 0)) * (selectedTops.length || (uploadedTop ? 1 : 0)) * (selectedBottoms.length || (uploadedBottom ? 1 : 0)) }} 个)
+              加入队列
             </button>
+            
+            <div class="flex space-x-2">
+              <div class="flex-1 bg-gray-700 text-white py-2 px-4 rounded-lg font-medium text-center">
+                队列中: {{ generationQueue.length }} 个搭配
+              </div>
+              <button
+                v-if="generationQueue.length > 0"
+                @click="generateQueueItems"
+                class="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white py-2 px-4 rounded-lg font-medium transition-all"
+              >
+                生成全部
+              </button>
+            </div>
+            
             <div class="text-center text-xs text-gray-500">
-              先预览所有搭配组合，然后选择要生成的搭配
+              创建多个搭配组合，然后一次性批量生成
             </div>
           </div>
 
-          <!-- Generate Button -->
-          <button
-            @click="generateImages"
-            :disabled="(selectedModels.length === 0 && !uploadedModel) || (selectedTops.length === 0 && !uploadedTop) || !customPrompt.trim() || isGenerating || (batchMode && selectedCombinations.filter(c => c.selected).length === 0)"
-            class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
-          >
-            <span v-if="isGenerating">生成中...</span>
-            <span v-else-if="batchMode">
-              批量生成 ({{ selectedCombinations.filter(c => c.selected).length * generationCount }} 张图片)
-            </span>
-            <span v-else>生成 {{ generationCount }} 张模特图</span>
-          </button>
+          <!-- Generate Button (Single Mode Only) -->
+          <div v-if="!batchMode">
+            <button
+              @click="generateImages"
+              :disabled="(selectedModels.length === 0 && !uploadedModel) || (selectedTops.length === 0 && !uploadedTop) || !customPrompt.trim() || isGenerating"
+              class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
+            >
+              <span v-if="isGenerating">生成中...</span>
+              <span v-else>生成 {{ generationCount }} 张模特图</span>
+            </button>
 
-          <div class="mt-4 text-center">
+            <div class="mt-4 text-center">
+              <p class="text-gray-500 text-sm">
+                预计生成时间：3-5分钟
+              </p>
+              <p class="text-gray-500 text-xs">
+                需要选择模特、上装和prompt
+              </p>
+            </div>
+          </div>
+          
+          <!-- Batch Mode Info -->
+          <div v-if="batchMode" class="text-center">
             <p class="text-gray-500 text-sm">
-              预计生成时间：{{ batchMode ? '5-10分钟' : '3-5分钟' }}
+              批量模式：每次选择一个完整搭配加入队列
             </p>
             <p class="text-gray-500 text-xs">
-              {{ batchMode ? '批量模式：需要选择模特、多个服装并预览组合' : '需要选择模特、上装和prompt' }}
+              队列中的搭配显示在右侧面板
             </p>
           </div>
         </div>
+        
       </div>
 
-      <!-- Right Panel - Results -->
+      <!-- Right Panel - Queue & Results -->
       <div :class="[
         'hidden lg:block bg-gray-900 p-6 overflow-y-auto',
         'lg:w-3/5',
         'xl:w-2/3'
       ]">
         <div class="max-w-lg mx-auto">
-          <div class="mb-6">
+          <!-- Queue Panel (Batch Mode) -->
+          <div v-if="batchMode" class="mb-6">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold text-white">搭配队列</h2>
+              <div class="flex items-center space-x-2">
+                <span class="text-xs text-gray-400">{{ generationQueue.length }} 个搭配</span>
+                <button
+                  v-if="generationQueue.length > 0"
+                  @click="clearQueue"
+                  class="text-xs text-red-400 hover:text-red-300 transition-colors"
+                >
+                  清空
+                </button>
+              </div>
+            </div>
+            
+            <div v-if="generationQueue.length === 0" class="text-center py-8 bg-gray-800 rounded-lg">
+              <div class="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+              </div>
+              <p class="text-gray-400 text-sm mb-1">队列为空</p>
+              <p class="text-gray-500 text-xs">选择搭配后点击"加入队列"添加搭配</p>
+            </div>
+            
+            <div v-else class="space-y-3">
+              <div class="bg-gray-800 rounded-lg max-h-64 overflow-y-auto">
+                <div
+                  v-for="(item, index) in generationQueue"
+                  :key="item.id"
+                  class="p-4 hover:bg-gray-750 transition-colors border-b border-gray-700 last:border-b-0"
+                >
+                  <div class="flex items-start space-x-3">
+                    <!-- Preview Images -->
+                    <div class="flex space-x-1 flex-shrink-0">
+                      <img :src="item.model.thumbnail" alt="Model" class="w-8 h-8 object-cover rounded" />
+                      <img :src="item.top.thumbnail" alt="Top" class="w-8 h-8 object-cover rounded" />
+                      <img :src="item.bottom.thumbnail" alt="Bottom" class="w-8 h-8 object-cover rounded" />
+                      <img v-if="item.accessory" :src="item.accessory.thumbnail" alt="Accessory" class="w-8 h-8 object-cover rounded" />
+                    </div>
+                    
+                    <!-- Item Details -->
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-white">搭配 {{ index + 1 }}</span>
+                        <span class="text-xs text-primary-400">{{ item.count }}张</span>
+                      </div>
+                      <div class="text-xs text-gray-400 space-y-0.5">
+                        <p>{{ item.model.name }} • {{ item.top.name }} • {{ item.bottom.name }}</p>
+                        <p v-if="item.accessory">{{ item.accessory.name }}</p>
+                        <p class="truncate">{{ item.prompt }}</p>
+                      </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex flex-col space-y-1">
+                      <button
+                        @click="editQueueItem(item)"
+                        class="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                        title="编辑"
+                      >
+                        <Edit2 class="w-4 h-4" />
+                      </button>
+                      <button
+                        @click="removeFromQueue(item.id)"
+                        class="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                        title="删除"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-gray-800 rounded-lg p-4">
+                <div class="text-center text-xs text-gray-400 mb-3">
+                  总计：{{ generationQueue.reduce((sum, item) => sum + item.count, 0) }} 张图片将被生成
+                </div>
+                <button
+                  @click="generateQueueItems"
+                  class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white py-3 rounded-lg font-semibold transition-all"
+                >
+                  开始批量生成
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results Section -->
+          <div v-if="!batchMode || generatedResults.length > 0" class="mb-6">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-lg font-semibold text-white">生成结果</h2>
               <div v-if="generatedResults.length > 0" class="text-xs text-gray-400">
