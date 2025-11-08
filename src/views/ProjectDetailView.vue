@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
 import GenerationHistory from '../components/GenerationHistory.vue'
-import { Upload, Download, Edit2, Check } from 'lucide-vue-next'
+import { Upload, Download, Edit2, Check, Search, ChevronDown, ChevronUp, Star, Filter } from 'lucide-vue-next'
 
 const isMobileMenuOpen = ref(false)
 
@@ -64,23 +64,51 @@ const customPrompt = ref('')
 // Aspect ratio selection
 const selectedAspectRatio = ref<any>(null)
 
-// Mock data
+// Material management states
+const showMaterialModal = ref({
+  tops: false,
+  bottoms: false,
+  accessories: false,
+  backgrounds: false
+})
+
+const modalSearchQueries = ref({
+  tops: '',
+  bottoms: '',
+  accessories: '',
+  backgrounds: ''
+})
+
+const modalCategoryFilters = ref({
+  tops: '',
+  bottoms: '',
+  accessories: '',
+  backgrounds: ''
+})
+
+const modalSortByFavorite = ref(false)
+
+// Mock data with enhanced structure for material management
 const topClothingItems = ref([
-  { id: '1', name: '白色衬衫', thumbnail: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=150&h=150&fit=crop', category: 'shirt' },
-  { id: '2', name: '蓝色牛仔衬衫', thumbnail: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=150&h=150&fit=crop', category: 'shirt' },
-  { id: '3', name: '黑色T恤', thumbnail: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=150&h=150&fit=crop', category: 'casual' },
-  { id: '4', name: '西装外套', thumbnail: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=150&h=150&fit=crop', category: 'formal' },
-  { id: '5', name: '运动上衣', thumbnail: 'https://images.unsplash.com/photo-1544966503-7cc5ac882d8e?w=150&h=150&fit=crop', category: 'sport' },
-  { id: '6', name: '毛衣', thumbnail: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=150&h=150&fit=crop', category: 'casual' }
+  { id: '1', name: '白色衬衫', thumbnail: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=150&h=150&fit=crop', category: 'shirt', isFavorite: true, tags: ['经典', '商务'], usageCount: 15, createdAt: new Date('2024-01-01') },
+  { id: '2', name: '蓝色牛仔衬衫', thumbnail: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=150&h=150&fit=crop', category: 'shirt', isFavorite: false, tags: ['休闲', '百搭'], usageCount: 8, createdAt: new Date('2024-01-02') },
+  { id: '3', name: '黑色T恤', thumbnail: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=150&h=150&fit=crop', category: 'casual', isFavorite: false, tags: ['简约', '基础款'], usageCount: 22, createdAt: new Date('2024-01-03') },
+  { id: '4', name: '西装外套', thumbnail: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=150&h=150&fit=crop', category: 'formal', isFavorite: true, tags: ['正式', '商务'], usageCount: 12, createdAt: new Date('2024-01-04') },
+  { id: '5', name: '运动上衣', thumbnail: 'https://images.unsplash.com/photo-1544966503-7cc5ac882d8e?w=150&h=150&fit=crop', category: 'sport', isFavorite: false, tags: ['运动', '舒适'], usageCount: 5, createdAt: new Date('2024-01-05') },
+  { id: '6', name: '毛衣', thumbnail: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=150&h=150&fit=crop', category: 'casual', isFavorite: false, tags: ['保暖', '秋冬'], usageCount: 9, createdAt: new Date('2024-01-06') },
+  { id: '7', name: '条纹衬衫', thumbnail: 'https://images.unsplash.com/photo-1603252109303-2751441b83e2?w=150&h=150&fit=crop', category: 'shirt', isFavorite: false, tags: ['条纹', '时尚'], usageCount: 3, createdAt: new Date('2024-01-07') },
+  { id: '8', name: '针织开衫', thumbnail: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=150&h=150&fit=crop', category: 'casual', isFavorite: true, tags: ['针织', '温柔'], usageCount: 7, createdAt: new Date('2024-01-08') }
 ])
 
 const bottomClothingItems = ref([
-  { id: '1', name: '蓝色牛仔裤', thumbnail: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=150&h=150&fit=crop', category: 'casual' },
-  { id: '2', name: '黑色西裤', thumbnail: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=150&h=150&fit=crop', category: 'formal' },
-  { id: '3', name: '运动裤', thumbnail: 'https://images.unsplash.com/photo-1506629905607-0e2dbec85709?w=150&h=150&fit=crop', category: 'sport' },
-  { id: '4', name: '短裤', thumbnail: 'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=150&h=150&fit=crop', category: 'casual' },
-  { id: '5', name: '红色连衣裙', thumbnail: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=150&h=150&fit=crop', category: 'dress' },
-  { id: '6', name: '职业裙装', thumbnail: 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=150&h=150&fit=crop', category: 'formal' }
+  { id: '1', name: '蓝色牛仔裤', thumbnail: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=150&h=150&fit=crop', category: 'casual', isFavorite: true, tags: ['牛仔', '百搭'], usageCount: 18, createdAt: new Date('2024-01-01') },
+  { id: '2', name: '黑色西裤', thumbnail: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=150&h=150&fit=crop', category: 'formal', isFavorite: false, tags: ['正式', '商务'], usageCount: 10, createdAt: new Date('2024-01-02') },
+  { id: '3', name: '运动裤', thumbnail: 'https://images.unsplash.com/photo-1506629905607-0e2dbec85709?w=150&h=150&fit=crop', category: 'sport', isFavorite: false, tags: ['运动', '舒适'], usageCount: 6, createdAt: new Date('2024-01-03') },
+  { id: '4', name: '短裤', thumbnail: 'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=150&h=150&fit=crop', category: 'casual', isFavorite: false, tags: ['夏季', '清爽'], usageCount: 4, createdAt: new Date('2024-01-04') },
+  { id: '5', name: '红色连衣裙', thumbnail: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=150&h=150&fit=crop', category: 'dress', isFavorite: true, tags: ['优雅', '晚装'], usageCount: 8, createdAt: new Date('2024-01-05') },
+  { id: '6', name: '职业裙装', thumbnail: 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=150&h=150&fit=crop', category: 'formal', isFavorite: false, tags: ['职业', '正式'], usageCount: 7, createdAt: new Date('2024-01-06') },
+  { id: '7', name: '休闲阔腿裤', thumbnail: 'https://images.unsplash.com/photo-1542272454315-7ad9f1b1a5a6?w=150&h=150&fit=crop', category: 'casual', isFavorite: false, tags: ['阔腿', '舒适'], usageCount: 5, createdAt: new Date('2024-01-07') },
+  { id: '8', name: '白色九分裤', thumbnail: 'https://images.unsplash.com/photo-1584370848010-d7fe6bc6c564?w=150&h=150&fit=crop', category: 'casual', isFavorite: true, tags: ['九分', '清新'], usageCount: 12, createdAt: new Date('2024-01-08') }
 ])
 
 const modelOptions = ref([
@@ -93,21 +121,21 @@ const modelOptions = ref([
 ])
 
 const accessoryOptions = ref([
-  { id: '1', name: '太阳镜', thumbnail: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=150&h=150&fit=crop', category: 'eyewear' },
-  { id: '2', name: '手表', thumbnail: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=150&h=150&fit=crop', category: 'watch' },
-  { id: '3', name: '项链', thumbnail: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=150&h=150&fit=crop', category: 'jewelry' },
-  { id: '4', name: '手包', thumbnail: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=150&h=150&fit=crop', category: 'bag' },
-  { id: '5', name: '帽子', thumbnail: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=150&h=150&fit=crop', category: 'hat' },
-  { id: '6', name: '围巾', thumbnail: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=150&h=150&fit=crop', category: 'scarf' }
+  { id: '1', name: '太阳镜', thumbnail: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=150&h=150&fit=crop', category: 'eyewear', isFavorite: true, tags: ['时尚', '遮阳'], usageCount: 12, createdAt: new Date('2024-01-01') },
+  { id: '2', name: '手表', thumbnail: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=150&h=150&fit=crop', category: 'watch', isFavorite: false, tags: ['精致', '商务'], usageCount: 8, createdAt: new Date('2024-01-02') },
+  { id: '3', name: '项链', thumbnail: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=150&h=150&fit=crop', category: 'jewelry', isFavorite: true, tags: ['优雅', '奢华'], usageCount: 15, createdAt: new Date('2024-01-03') },
+  { id: '4', name: '手包', thumbnail: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=150&h=150&fit=crop', category: 'bag', isFavorite: false, tags: ['实用', '时尚'], usageCount: 6, createdAt: new Date('2024-01-04') },
+  { id: '5', name: '帽子', thumbnail: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=150&h=150&fit=crop', category: 'hat', isFavorite: false, tags: ['休闲', '防晒'], usageCount: 4, createdAt: new Date('2024-01-05') },
+  { id: '6', name: '围巾', thumbnail: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=150&h=150&fit=crop', category: 'scarf', isFavorite: true, tags: ['保暖', '时尚'], usageCount: 9, createdAt: new Date('2024-01-06') }
 ])
 
 const backgroundOptions = ref([
-  { id: '1', name: '纯色背景', thumbnail: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=150&h=150&fit=crop', type: 'solid' },
-  { id: '2', name: '咖啡店', thumbnail: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&h=150&fit=crop', type: 'indoor' },
-  { id: '3', name: '办公室', thumbnail: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&h=150&fit=crop', type: 'indoor' },
-  { id: '4', name: '公园', thumbnail: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=150&h=150&fit=crop', type: 'outdoor' },
-  { id: '5', name: '街道', thumbnail: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=150&h=150&fit=crop', type: 'outdoor' },
-  { id: '6', name: '摄影棚', thumbnail: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=150&h=150&fit=crop', type: 'studio' }
+  { id: '1', name: '纯色背景', thumbnail: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=150&h=150&fit=crop', type: 'solid', isFavorite: true, tags: ['简约', '干净'], usageCount: 20, createdAt: new Date('2024-01-01') },
+  { id: '2', name: '咖啡店', thumbnail: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&h=150&fit=crop', type: 'indoor', isFavorite: false, tags: ['温馨', '休闲'], usageCount: 8, createdAt: new Date('2024-01-02') },
+  { id: '3', name: '办公室', thumbnail: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&h=150&fit=crop', type: 'indoor', isFavorite: true, tags: ['商务', '专业'], usageCount: 14, createdAt: new Date('2024-01-03') },
+  { id: '4', name: '公园', thumbnail: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=150&h=150&fit=crop', type: 'outdoor', isFavorite: false, tags: ['自然', '清新'], usageCount: 6, createdAt: new Date('2024-01-04') },
+  { id: '5', name: '街道', thumbnail: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=150&h=150&fit=crop', type: 'outdoor', isFavorite: false, tags: ['都市', '现代'], usageCount: 5, createdAt: new Date('2024-01-05') },
+  { id: '6', name: '摄影棚', thumbnail: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=150&h=150&fit=crop', type: 'studio', isFavorite: true, tags: ['专业', '摄影'], usageCount: 12, createdAt: new Date('2024-01-06') }
 ])
 
 // Aspect ratio options
@@ -172,6 +200,159 @@ const selectBackground = (background: any) => {
 const selectAspectRatio = (ratio: any) => {
   selectedAspectRatio.value = ratio
 }
+
+// Material management functions
+const openMaterialModal = (type: string) => {
+  showMaterialModal.value[type] = true
+}
+
+const closeMaterialModal = () => {
+  // Close all modals
+  showMaterialModal.value = {
+    tops: false,
+    bottoms: false,
+    accessories: false,
+    backgrounds: false
+  }
+  // Clear searches when closing modal
+  modalSearchQueries.value = {
+    tops: '',
+    bottoms: '',
+    accessories: '',
+    backgrounds: ''
+  }
+  modalCategoryFilters.value = {
+    tops: '',
+    bottoms: '',
+    accessories: '',
+    backgrounds: ''
+  }
+  modalSortByFavorite.value = false
+}
+
+const toggleModalSortByFavorite = () => {
+  modalSortByFavorite.value = !modalSortByFavorite.value
+}
+
+const toggleFavorite = (item: any, type: string) => {
+  item.isFavorite = !item.isFavorite
+  // Save to localStorage for persistence
+  localStorage.setItem(`${type}Items`, JSON.stringify(eval(`${type}ClothingItems`).value))
+}
+
+// Main interface - only show favorite materials
+const favoriteTopItems = computed(() => {
+  return topClothingItems.value
+    .filter(item => item.isFavorite)
+    .sort((a, b) => b.usageCount - a.usageCount)
+})
+
+const favoriteBottomItems = computed(() => {
+  return bottomClothingItems.value
+    .filter(item => item.isFavorite)
+    .sort((a, b) => b.usageCount - a.usageCount)
+})
+
+const favoriteAccessoryItems = computed(() => {
+  return accessoryOptions.value
+    .filter(item => item.isFavorite)
+    .sort((a, b) => b.usageCount - a.usageCount)
+})
+
+const favoriteBackgroundItems = computed(() => {
+  return backgroundOptions.value
+    .filter(item => item.isFavorite)
+    .sort((a, b) => b.usageCount - a.usageCount)
+})
+
+// Modal filters for complete material library
+const modalFilteredTopItems = computed(() => {
+  let items = topClothingItems.value
+  
+  if (modalSearchQueries.value.tops) {
+    const query = modalSearchQueries.value.tops.toLowerCase()
+    items = items.filter(item => 
+      item.name.toLowerCase().includes(query) ||
+      item.tags.some(tag => tag.toLowerCase().includes(query))
+    )
+  }
+  
+  if (modalCategoryFilters.value.tops) {
+    items = items.filter(item => item.category === modalCategoryFilters.value.tops)
+  }
+  
+  return items.sort((a, b) => {
+    if (a.isFavorite && !b.isFavorite) return -1
+    if (!a.isFavorite && b.isFavorite) return 1
+    return b.usageCount - a.usageCount
+  })
+})
+
+const modalFilteredBottomItems = computed(() => {
+  let items = bottomClothingItems.value
+  
+  if (modalSearchQueries.value.bottoms) {
+    const query = modalSearchQueries.value.bottoms.toLowerCase()
+    items = items.filter(item => 
+      item.name.toLowerCase().includes(query) ||
+      item.tags.some(tag => tag.toLowerCase().includes(query))
+    )
+  }
+  
+  if (modalCategoryFilters.value.bottoms) {
+    items = items.filter(item => item.category === modalCategoryFilters.value.bottoms)
+  }
+  
+  return items.sort((a, b) => {
+    if (a.isFavorite && !b.isFavorite) return -1
+    if (!a.isFavorite && b.isFavorite) return 1
+    return b.usageCount - a.usageCount
+  })
+})
+
+const modalFilteredAccessoryItems = computed(() => {
+  let items = accessoryOptions.value
+  
+  if (modalSearchQueries.value.accessories) {
+    const query = modalSearchQueries.value.accessories.toLowerCase()
+    items = items.filter(item => 
+      item.name.toLowerCase().includes(query) ||
+      item.tags.some(tag => tag.toLowerCase().includes(query))
+    )
+  }
+  
+  if (modalCategoryFilters.value.accessories) {
+    items = items.filter(item => item.category === modalCategoryFilters.value.accessories)
+  }
+  
+  return items.sort((a, b) => {
+    if (a.isFavorite && !b.isFavorite) return -1
+    if (!a.isFavorite && b.isFavorite) return 1
+    return b.usageCount - a.usageCount
+  })
+})
+
+const modalFilteredBackgroundItems = computed(() => {
+  let items = backgroundOptions.value
+  
+  if (modalSearchQueries.value.backgrounds) {
+    const query = modalSearchQueries.value.backgrounds.toLowerCase()
+    items = items.filter(item => 
+      item.name.toLowerCase().includes(query) ||
+      item.tags.some(tag => tag.toLowerCase().includes(query))
+    )
+  }
+  
+  if (modalCategoryFilters.value.backgrounds) {
+    items = items.filter(item => item.type === modalCategoryFilters.value.backgrounds)
+  }
+  
+  return items.sort((a, b) => {
+    if (a.isFavorite && !b.isFavorite) return -1
+    if (!a.isFavorite && b.isFavorite) return 1
+    return b.usageCount - a.usageCount
+  })
+})
 
 const uploadTopFile = () => {
   // 模拟上衣文件上传
@@ -1024,9 +1205,11 @@ onMounted(() => {
                 已选择: {{ selectedTops[0].name }}
               </div>
             </div>
-            <div class="grid grid-cols-4 gap-3 mb-4">
+            
+            <!-- Favorite Top Items -->
+            <div v-if="favoriteTopItems.length > 0" class="grid grid-cols-4 gap-3 mb-4">
               <div
-                v-for="item in topClothingItems"
+                v-for="item in favoriteTopItems"
                 :key="item.id"
                 @click="selectTop(item)"
                 :class="[
@@ -1039,20 +1222,40 @@ onMounted(() => {
                   :alt="item.name"
                   class="w-full h-full object-cover"
                 />
+                
+                <!-- Favorite Star -->
+                <div class="absolute top-2 left-2 p-1 rounded-full bg-black bg-opacity-50">
+                  <Star class="h-4 w-4 text-yellow-400 fill-current" />
+                </div>
+                
                 <!-- Selected indicator -->
-                <div v-if="selectedTops[0]?.id === item.id" class="absolute top-2 right-2">
-                  <div class="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <div v-if="selectedTops[0]?.id === item.id" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
                   </div>
                 </div>
+                
                 <!-- Item name overlay -->
-                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 text-center">
-                  {{ item.name }}
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-2">
+                  <div class="text-xs font-medium">{{ item.name }}</div>
                 </div>
               </div>
             </div>
+            
+            <!-- Browse More Button -->
+            <button
+              @click="openMaterialModal('tops')"
+              class="w-full mb-4 py-2 px-3 bg-gray-800 border border-gray-700 hover:border-primary-500 rounded-lg text-gray-300 hover:text-white transition-all group text-sm"
+            >
+              <div class="flex items-center justify-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                <span>浏览所有上装</span>
+              </div>
+            </button>
             
             <!-- Upload Top Option -->
             <div
@@ -1077,9 +1280,11 @@ onMounted(() => {
                 已选择: {{ selectedBottoms[0].name }}
               </div>
             </div>
-            <div class="grid grid-cols-4 gap-3 mb-4">
+            
+            <!-- Favorite Bottom Items -->
+            <div v-if="favoriteBottomItems.length > 0" class="grid grid-cols-4 gap-3 mb-4">
               <div
-                v-for="item in bottomClothingItems"
+                v-for="item in favoriteBottomItems"
                 :key="item.id"
                 @click="selectBottom(item)"
                 :class="[
@@ -1092,20 +1297,40 @@ onMounted(() => {
                   :alt="item.name"
                   class="w-full h-full object-cover"
                 />
+                
+                <!-- Favorite Star -->
+                <div class="absolute top-2 left-2 p-1 rounded-full bg-black bg-opacity-50">
+                  <Star class="h-4 w-4 text-yellow-400 fill-current" />
+                </div>
+                
                 <!-- Selected indicator -->
-                <div v-if="selectedBottoms[0]?.id === item.id" class="absolute top-2 right-2">
-                  <div class="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <div v-if="selectedBottoms[0]?.id === item.id" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
                   </div>
                 </div>
+                
                 <!-- Item name overlay -->
-                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 text-center">
-                  {{ item.name }}
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-2">
+                  <div class="text-xs font-medium">{{ item.name }}</div>
                 </div>
               </div>
             </div>
+            
+            <!-- Browse More Button -->
+            <button
+              @click="openMaterialModal('bottoms')"
+              class="w-full mb-4 py-2 px-3 bg-gray-800 border border-gray-700 hover:border-primary-500 rounded-lg text-gray-300 hover:text-white transition-all group text-sm"
+            >
+              <div class="flex items-center justify-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                <span>浏览所有下装</span>
+              </div>
+            </button>
             
             <!-- Upload Bottom Option -->
             <div
@@ -1124,15 +1349,22 @@ onMounted(() => {
 
           <!-- Accessory Selection -->
           <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">选择配饰</h2>
-            <div class="grid grid-cols-4 gap-3 mb-4">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-white">选择配饰</h2>
+              <div v-if="selectedAccessories.length > 0" class="text-xs text-primary-400">
+                已选择: {{ selectedAccessories[0]?.name }}
+              </div>
+            </div>
+            
+            <!-- Favorite Accessory Items -->
+            <div v-if="favoriteAccessoryItems.length > 0" class="grid grid-cols-4 gap-3 mb-4">
               <div
-                v-for="accessory in accessoryOptions"
+                v-for="accessory in favoriteAccessoryItems"
                 :key="accessory.id"
                 @click="selectAccessory(accessory)"
                 :class="[
-                  'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  (batchMode ? selectedAccessories.some(acc => acc.id === accessory.id) : selectedAccessories[0]?.id === accessory.id) ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                  'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  selectedAccessories[0]?.id === accessory.id ? 'border-primary-500 ring-1 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -1140,8 +1372,40 @@ onMounted(() => {
                   :alt="accessory.name"
                   class="w-full h-full object-cover"
                 />
+                
+                <!-- Favorite Star -->
+                <div class="absolute top-2 left-2 p-1 rounded-full bg-black bg-opacity-50">
+                  <Star class="h-4 w-4 text-yellow-400 fill-current" />
+                </div>
+                
+                <!-- Selected indicator -->
+                <div v-if="selectedAccessories[0]?.id === accessory.id" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+                
+                <!-- Item name overlay -->
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-2">
+                  <div class="text-xs font-medium">{{ accessory.name }}</div>
+                </div>
               </div>
             </div>
+            
+            <!-- Browse More Button -->
+            <button
+              @click="openMaterialModal('accessories')"
+              class="w-full mb-4 py-2 px-3 bg-gray-800 border border-gray-700 hover:border-primary-500 rounded-lg text-gray-300 hover:text-white transition-all group text-sm"
+            >
+              <div class="flex items-center justify-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                <span>浏览所有配饰</span>
+              </div>
+            </button>
             
             <!-- Upload Accessory Option -->
             <div
@@ -1156,23 +1420,26 @@ onMounted(() => {
               <img :src="uploadedAccessory" alt="Uploaded accessory" class="w-16 h-16 object-cover rounded mx-auto mb-2" />
               <p class="text-green-400 text-sm text-center">配饰上传成功</p>
             </div>
-            
-            <div v-else-if="selectedAccessories.length > 0" class="mt-3 text-center">
-              <span class="text-primary-400 text-sm">已选择: {{ batchMode ? `${selectedAccessories.length} 个配饰` : selectedAccessories[0]?.name }}</span>
-            </div>
           </div>
 
           <!-- Background Selection -->
           <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">选择背景</h2>
-            <div class="grid grid-cols-4 gap-3">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-white">选择背景</h2>
+              <div v-if="selectedBackground" class="text-xs text-primary-400">
+                已选择: {{ selectedBackground.name }}
+              </div>
+            </div>
+            
+            <!-- Favorite Background Items -->
+            <div v-if="favoriteBackgroundItems.length > 0" class="grid grid-cols-4 gap-3 mb-4">
               <div
-                v-for="background in backgroundOptions"
+                v-for="background in favoriteBackgroundItems"
                 :key="background.id"
                 @click="selectBackground(background)"
                 :class="[
-                  'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  selectedBackground?.id === background.id ? 'border-primary-500' : 'border-gray-700 hover:border-gray-600'
+                  'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+                  selectedBackground?.id === background.id ? 'border-primary-500 ring-1 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -1180,13 +1447,45 @@ onMounted(() => {
                   :alt="background.name"
                   class="w-full h-full object-cover"
                 />
+                
+                <!-- Favorite Star -->
+                <div class="absolute top-2 left-2 p-1 rounded-full bg-black bg-opacity-50">
+                  <Star class="h-4 w-4 text-yellow-400 fill-current" />
+                </div>
+                
+                <!-- Selected indicator -->
+                <div v-if="selectedBackground?.id === background.id" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+                
+                <!-- Item name overlay -->
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-2">
+                  <div class="text-xs font-medium">{{ background.name }}</div>
+                </div>
               </div>
             </div>
+            
+            <!-- Browse More Button -->
+            <button
+              @click="openMaterialModal('backgrounds')"
+              class="w-full mb-4 py-2 px-3 bg-gray-800 border border-gray-700 hover:border-primary-500 rounded-lg text-gray-300 hover:text-white transition-all group text-sm"
+            >
+              <div class="flex items-center justify-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                <span>浏览所有背景</span>
+              </div>
+            </button>
             
             <!-- Upload Background Option -->
             <div
               @click="uploadBackgroundFile"
-              class="mt-4 border-2 border-dashed border-gray-700 hover:border-gray-600 rounded-lg p-4 text-center cursor-pointer transition-colors group"
+              class="border-2 border-dashed border-gray-700 hover:border-gray-600 rounded-lg p-4 text-center cursor-pointer transition-colors group"
             >
               <Upload class="h-6 w-6 text-gray-500 group-hover:text-gray-400 mx-auto mb-2" />
               <p class="text-gray-500 group-hover:text-gray-400 text-sm">上传背景图</p>
@@ -1195,10 +1494,6 @@ onMounted(() => {
             <div v-if="uploadedBackground" class="mt-3 p-3 bg-gray-800 rounded-lg">
               <img :src="uploadedBackground" alt="Uploaded background" class="w-16 h-16 object-cover rounded mx-auto mb-2" />
               <p class="text-green-400 text-sm text-center">背景图上传成功</p>
-            </div>
-            
-            <div v-else-if="selectedBackground" class="mt-3 text-center">
-              <span class="text-primary-400 text-sm">已选择: {{ selectedBackground.name }}</span>
             </div>
           </div>
 
@@ -1996,6 +2291,360 @@ onMounted(() => {
         <p class="text-gray-400 text-sm">
           正在根据新prompt生成 {{ editingResults.length }} 张图片...
         </p>
+      </div>
+    </div>
+
+    <!-- Material Library Modal -->
+    <div 
+      v-if="showMaterialModal.tops || showMaterialModal.bottoms || showMaterialModal.accessories || showMaterialModal.backgrounds" 
+      class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
+      @click.self="closeMaterialModal()"
+    >
+      <div class="bg-gray-900 rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h3 class="text-xl font-bold text-white">
+              {{ showMaterialModal.tops ? '上装图库' : 
+                  showMaterialModal.bottoms ? '下装图库' :
+                  showMaterialModal.accessories ? '配饰图库' : '背景图库' }}
+            </h3>
+            <p class="text-gray-400 text-sm mt-1">点击星星收藏/取消收藏，收藏的素材会在主界面显示</p>
+          </div>
+          <button
+            @click="closeMaterialModal()"
+            class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700 transition-colors"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Search and Filter Controls -->
+        <div class="mb-6 space-y-3">
+          <div class="relative">
+            <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              v-model="modalSearchQueries.tops"
+              v-if="showMaterialModal.tops"
+              type="text"
+              placeholder="搜索上装名称或标签..."
+              class="w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 text-sm"
+            />
+            <input
+              v-model="modalSearchQueries.bottoms"
+              v-if="showMaterialModal.bottoms"
+              type="text"
+              placeholder="搜索下装名称或标签..."
+              class="w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 text-sm"
+            />
+            <input
+              v-model="modalSearchQueries.accessories"
+              v-if="showMaterialModal.accessories"
+              type="text"
+              placeholder="搜索配饰名称或标签..."
+              class="w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 text-sm"
+            />
+            <input
+              v-model="modalSearchQueries.backgrounds"
+              v-if="showMaterialModal.backgrounds"
+              type="text"
+              placeholder="搜索背景名称或标签..."
+              class="w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 text-sm"
+            />
+          </div>
+          
+          <div class="flex space-x-3">
+            <select
+              v-model="modalCategoryFilters.tops"
+              v-if="showMaterialModal.tops"
+              class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-primary-500 text-sm"
+            >
+              <option value="">所有分类</option>
+              <option value="shirt">衬衫</option>
+              <option value="casual">休闲</option>
+              <option value="formal">正装</option>
+              <option value="sport">运动</option>
+            </select>
+            <select
+              v-model="modalCategoryFilters.bottoms"
+              v-if="showMaterialModal.bottoms"
+              class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-primary-500 text-sm"
+            >
+              <option value="">所有分类</option>
+              <option value="casual">休闲</option>
+              <option value="formal">正装</option>
+              <option value="sport">运动</option>
+              <option value="dress">连衣裙</option>
+            </select>
+            <select
+              v-model="modalCategoryFilters.accessories"
+              v-if="showMaterialModal.accessories"
+              class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-primary-500 text-sm"
+            >
+              <option value="">所有分类</option>
+              <option value="jewelry">首饰</option>
+              <option value="bag">包包</option>
+              <option value="hat">帽子</option>
+              <option value="belt">腰带</option>
+            </select>
+            <select
+              v-model="modalCategoryFilters.backgrounds"
+              v-if="showMaterialModal.backgrounds"
+              class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-primary-500 text-sm"
+            >
+              <option value="">所有分类</option>
+              <option value="indoor">室内</option>
+              <option value="outdoor">户外</option>
+              <option value="studio">影棚</option>
+              <option value="abstract">抽象</option>
+            </select>
+
+            <button
+              class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors flex items-center space-x-2 text-sm"
+              @click="toggleModalSortByFavorite()"
+            >
+              <Star :class="['h-4 w-4', modalSortByFavorite ? 'text-yellow-400 fill-current' : 'text-gray-400']" />
+              <span>{{ modalSortByFavorite ? '显示全部' : '只看收藏' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Results Info -->
+        <div class="mb-4 text-sm text-gray-400">
+          找到 {{ 
+            showMaterialModal.tops ? modalFilteredTopItems.length :
+            showMaterialModal.bottoms ? modalFilteredBottomItems.length :
+            showMaterialModal.accessories ? modalFilteredAccessoryItems.length :
+            modalFilteredBackgroundItems.length 
+          }} 个素材
+        </div>
+
+        <!-- Material Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+          <!-- Top Clothing Items -->
+          <div
+            v-if="showMaterialModal.tops"
+            v-for="item in modalFilteredTopItems"
+            :key="item.id"
+            @click="selectTop(item); closeMaterialModal()"
+            :class="[
+              'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+              selectedTops[0]?.id === item.id ? 'border-primary-500 ring-2 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
+            ]"
+          >
+            <img
+              :src="item.thumbnail"
+              :alt="item.name"
+              class="w-full h-full object-cover"
+            />
+            
+            <!-- Favorite Star -->
+            <button
+              @click.stop="toggleFavorite(item, 'topClothing')"
+              class="absolute top-2 left-2 p-1 rounded-full bg-black bg-opacity-60 hover:bg-opacity-80 transition-all"
+            >
+              <Star 
+                :class="[
+                  'h-5 w-5 transition-colors',
+                  item.isFavorite ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                ]"
+              />
+            </button>
+            
+            <!-- Usage Count -->
+            <div class="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">
+              {{ item.usageCount }}
+            </div>
+            
+            <!-- Selected indicator -->
+            <div v-if="selectedTops[0]?.id === item.id" class="absolute inset-0 bg-primary-500 bg-opacity-20 flex items-center justify-center">
+              <div class="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Item info -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-3">
+              <div class="text-sm font-medium">{{ item.name }}</div>
+              <div class="text-xs text-gray-300 mt-1 flex flex-wrap gap-1">
+                <span v-for="tag in item.tags.slice(0, 2)" :key="tag" class="bg-gray-600 px-2 py-0.5 rounded">{{ tag }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Clothing Items -->
+          <div
+            v-if="showMaterialModal.bottoms"
+            v-for="item in modalFilteredBottomItems"
+            :key="item.id"
+            @click="selectBottom(item); closeMaterialModal()"
+            :class="[
+              'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+              selectedBottoms[0]?.id === item.id ? 'border-primary-500 ring-2 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
+            ]"
+          >
+            <img
+              :src="item.thumbnail"
+              :alt="item.name"
+              class="w-full h-full object-cover"
+            />
+            
+            <!-- Favorite Star -->
+            <button
+              @click.stop="toggleFavorite(item, 'bottomClothing')"
+              class="absolute top-2 left-2 p-1 rounded-full bg-black bg-opacity-60 hover:bg-opacity-80 transition-all"
+            >
+              <Star 
+                :class="[
+                  'h-5 w-5 transition-colors',
+                  item.isFavorite ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                ]"
+              />
+            </button>
+            
+            <!-- Usage Count -->
+            <div class="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">
+              {{ item.usageCount }}
+            </div>
+            
+            <!-- Selected indicator -->
+            <div v-if="selectedBottoms[0]?.id === item.id" class="absolute inset-0 bg-primary-500 bg-opacity-20 flex items-center justify-center">
+              <div class="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Item info -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-3">
+              <div class="text-sm font-medium">{{ item.name }}</div>
+              <div class="text-xs text-gray-300 mt-1 flex flex-wrap gap-1">
+                <span v-for="tag in item.tags.slice(0, 2)" :key="tag" class="bg-gray-600 px-2 py-0.5 rounded">{{ tag }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accessory Items -->
+          <div
+            v-if="showMaterialModal.accessories"
+            v-for="item in modalFilteredAccessoryItems"
+            :key="item.id"
+            @click="selectAccessory(item); closeMaterialModal()"
+            :class="[
+              'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+              selectedAccessories[0]?.id === item.id ? 'border-primary-500 ring-2 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
+            ]"
+          >
+            <img
+              :src="item.thumbnail"
+              :alt="item.name"
+              class="w-full h-full object-cover"
+            />
+            
+            <!-- Favorite Star -->
+            <button
+              @click.stop="toggleFavorite(item, 'accessories')"
+              class="absolute top-2 left-2 p-1 rounded-full bg-black bg-opacity-60 hover:bg-opacity-80 transition-all"
+            >
+              <Star 
+                :class="[
+                  'h-5 w-5 transition-colors',
+                  item.isFavorite ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                ]"
+              />
+            </button>
+            
+            <!-- Usage Count -->
+            <div class="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">
+              {{ item.usageCount }}
+            </div>
+            
+            <!-- Selected indicator -->
+            <div v-if="selectedAccessories[0]?.id === item.id" class="absolute inset-0 bg-primary-500 bg-opacity-20 flex items-center justify-center">
+              <div class="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Item info -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-3">
+              <div class="text-sm font-medium">{{ item.name }}</div>
+              <div class="text-xs text-gray-300 mt-1 flex flex-wrap gap-1">
+                <span v-for="tag in item.tags.slice(0, 2)" :key="tag" class="bg-gray-600 px-2 py-0.5 rounded">{{ tag }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Background Items -->
+          <div
+            v-if="showMaterialModal.backgrounds"
+            v-for="item in modalFilteredBackgroundItems"
+            :key="item.id"
+            @click="selectBackground(item); closeMaterialModal()"
+            :class="[
+              'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
+              selectedBackground?.id === item.id ? 'border-primary-500 ring-2 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
+            ]"
+          >
+            <img
+              :src="item.thumbnail"
+              :alt="item.name"
+              class="w-full h-full object-cover"
+            />
+            
+            <!-- Favorite Star -->
+            <button
+              @click.stop="toggleFavorite(item, 'backgrounds')"
+              class="absolute top-2 left-2 p-1 rounded-full bg-black bg-opacity-60 hover:bg-opacity-80 transition-all"
+            >
+              <Star 
+                :class="[
+                  'h-5 w-5 transition-colors',
+                  item.isFavorite ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                ]"
+              />
+            </button>
+            
+            <!-- Usage Count -->
+            <div class="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">
+              {{ item.usageCount }}
+            </div>
+            
+            <!-- Selected indicator -->
+            <div v-if="selectedBackground?.id === item.id" class="absolute inset-0 bg-primary-500 bg-opacity-20 flex items-center justify-center">
+              <div class="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Item info -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent text-white p-3">
+              <div class="text-sm font-medium">{{ item.name }}</div>
+              <div class="text-xs text-gray-300 mt-1 flex flex-wrap gap-1">
+                <span v-for="tag in item.tags.slice(0, 2)" :key="tag" class="bg-gray-600 px-2 py-0.5 rounded">{{ tag }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex justify-center pt-4 border-t border-gray-700">
+          <button
+            @click="closeMaterialModal()"
+            class="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
+          >
+            关闭
+          </button>
+        </div>
       </div>
     </div>
   </div>
