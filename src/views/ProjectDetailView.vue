@@ -140,11 +140,17 @@ const backgroundOptions = ref([
 
 // Aspect ratio options
 const aspectRatioOptions = ref([
+  { id: 'auto', name: 'Auto', width: 4, height: 3, isAuto: true },
   { id: '1:1', name: '1:1', width: 1, height: 1 },
+  { id: '9:16', name: '9:16', width: 9, height: 16 },
+  { id: '16:9', name: '16:9', width: 16, height: 9 },
+  { id: '21:9', name: '21:9', width: 21, height: 9 },
   { id: '3:4', name: '3:4', width: 3, height: 4 },
   { id: '4:3', name: '4:3', width: 4, height: 3 },
-  { id: '9:16', name: '9:16', width: 9, height: 16 },
-  { id: '16:9', name: '16:9', width: 16, height: 9 }
+  { id: '3:2', name: '3:2', width: 3, height: 2 },
+  { id: '2:3', name: '2:3', width: 2, height: 3 },
+  { id: '5:4', name: '5:4', width: 5, height: 4 },
+  { id: '4:5', name: '4:5', width: 4, height: 5 }
 ])
 
 // Prompt templates for model generation
@@ -986,8 +992,8 @@ const clearCurrentSelection = () => {
   customPrompt.value = ''
   selectedPromptTemplate.value = null
   generationCount.value = 3
-  // Keep aspect ratio selection as default 3:4
-  selectedAspectRatio.value = aspectRatioOptions.value.find(ratio => ratio.id === '3:4')
+  // Set default aspect ratio to Auto
+  selectedAspectRatio.value = aspectRatioOptions.value.find(ratio => ratio.id === 'auto')
 }
 
 const removeFromQueue = (id: string) => {
@@ -1042,7 +1048,7 @@ const editQueueItem = async (item: QueueItem) => {
   customPrompt.value = item.prompt
   selectedPromptTemplate.value = item.promptTemplate
   generationCount.value = item.count
-  selectedAspectRatio.value = item.aspectRatio || aspectRatioOptions.value.find(ratio => ratio.id === '3:4')
+  selectedAspectRatio.value = item.aspectRatio || aspectRatioOptions.value.find(ratio => ratio.id === 'auto')
   
   // Remove the item from queue after loading it for editing
   removeFromQueue(item.id)
@@ -1082,8 +1088,8 @@ onMounted(() => {
   // 页面初始化
   loadQueueFromStorage()
   
-  // Set default aspect ratio to 3:4 (portrait)
-  selectedAspectRatio.value = aspectRatioOptions.value.find(ratio => ratio.id === '3:4')
+  // Set default aspect ratio to Auto
+  selectedAspectRatio.value = aspectRatioOptions.value.find(ratio => ratio.id === 'auto')
 })
 </script>
 
@@ -1522,7 +1528,7 @@ onMounted(() => {
           <!-- Aspect Ratio Selection -->
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">图片比例</h2>
-            <div class="grid grid-cols-5 gap-3">
+            <div class="grid grid-cols-5 gap-2">
               <div
                 v-for="ratio in aspectRatioOptions"
                 :key="ratio.id"
@@ -1808,8 +1814,13 @@ onMounted(() => {
                         'w-full object-cover rounded-lg',
                         (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '1:1' ? 'aspect-square' :
                         (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '4:3' ? 'aspect-[4/3]' :
+                        (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '3:2' ? 'aspect-[3/2]' :
+                        (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '5:4' ? 'aspect-[5/4]' :
                         (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '9:16' ? 'aspect-[9/16]' :
                         (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '16:9' ? 'aspect-[16/9]' :
+                        (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '21:9' ? 'aspect-[21/9]' :
+                        (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '2:3' ? 'aspect-[2/3]' :
+                        (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '4:5' ? 'aspect-[4/5]' :
                         'aspect-[3/4]'
                       ]"
                     />
@@ -1880,8 +1891,13 @@ onMounted(() => {
                       'w-full object-cover rounded-lg',
                       (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '1:1' ? 'aspect-square' :
                       (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '4:3' ? 'aspect-[4/3]' :
+                      (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '3:2' ? 'aspect-[3/2]' :
+                      (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '5:4' ? 'aspect-[5/4]' :
                       (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '9:16' ? 'aspect-[9/16]' :
                       (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '16:9' ? 'aspect-[16/9]' :
+                      (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '21:9' ? 'aspect-[21/9]' :
+                      (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '2:3' ? 'aspect-[2/3]' :
+                      (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '4:5' ? 'aspect-[4/5]' :
                       'aspect-[3/4]'
                     ]"
                   />
