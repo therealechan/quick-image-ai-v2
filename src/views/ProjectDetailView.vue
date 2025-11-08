@@ -202,7 +202,7 @@ const selectAspectRatio = (ratio: any) => {
 }
 
 // Material management functions
-const openMaterialModal = (type: string) => {
+const openMaterialModal = (type: keyof typeof showMaterialModal.value) => {
   showMaterialModal.value[type] = true
 }
 
@@ -237,7 +237,16 @@ const toggleModalSortByFavorite = () => {
 const toggleFavorite = (item: any, type: string) => {
   item.isFavorite = !item.isFavorite
   // Save to localStorage for persistence
-  localStorage.setItem(`${type}Items`, JSON.stringify(eval(`${type}ClothingItems`).value))
+  const itemMap = {
+    topClothing: topClothingItems,
+    bottomClothing: bottomClothingItems,
+    accessories: accessoryOptions,
+    backgrounds: backgroundOptions
+  }
+  const items = itemMap[type as keyof typeof itemMap]
+  if (items) {
+    localStorage.setItem(`${type}Items`, JSON.stringify(items.value))
+  }
 }
 
 // Main interface - only show favorite materials
