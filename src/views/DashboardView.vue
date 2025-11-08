@@ -108,7 +108,7 @@ onMounted(() => {
               </div>
               <div>
                 <p class="text-gray-400 text-xs">总图片</p>
-                <p class="text-xl font-bold text-white">{{ mockStats.totalImages.toLocaleString() }}</p>
+                <p class="text-lg font-bold text-white">{{ mockStats.totalImages.toLocaleString() }}</p>
               </div>
             </div>
           </div>
@@ -120,7 +120,7 @@ onMounted(() => {
               </div>
               <div>
                 <p class="text-gray-400 text-xs">项目</p>
-                <p class="text-xl font-bold text-white">{{ mockStats.totalProjects }}</p>
+                <p class="text-lg font-bold text-white">{{ mockStats.totalProjects }}</p>
               </div>
             </div>
           </div>
@@ -132,7 +132,7 @@ onMounted(() => {
               </div>
               <div>
                 <p class="text-gray-400 text-xs">本月</p>
-                <p class="text-xl font-bold text-white">{{ mockStats.monthlyImages }}</p>
+                <p class="text-lg font-bold text-white">{{ mockStats.monthlyImages }}</p>
               </div>
             </div>
           </div>
@@ -144,7 +144,7 @@ onMounted(() => {
               </div>
               <div>
                 <p class="text-gray-400 text-xs">积分</p>
-                <p class="text-xl font-bold text-white">{{ mockStats.creditsRemaining }}</p>
+                <p class="text-lg font-bold text-white">{{ mockStats.creditsRemaining }}</p>
               </div>
             </div>
           </div>

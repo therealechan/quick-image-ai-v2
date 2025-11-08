@@ -241,7 +241,7 @@ const getStatusText = (status: string) => {
               v-model="newProjectName"
               type="text"
               required
-              class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400"
+              class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 text-sm"
               placeholder="输入项目名称"
               maxlength="50"
             />
@@ -255,7 +255,7 @@ const getStatusText = (status: string) => {
               id="projectDescription"
               v-model="newProjectDescription"
               rows="3"
-              class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 resize-none"
+              class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 text-sm resize-none"
               placeholder="简短描述您的项目..."
               maxlength="200"
             />

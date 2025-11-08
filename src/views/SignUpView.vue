@@ -108,7 +108,7 @@ const goToLogin = () => {
                 type="text"
                 autocomplete="name"
                 required
-                class="w-full pl-10 pr-3 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 transition-colors"
+                class="w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 transition-colors text-sm"
                 placeholder="输入您的姓名"
               />
             </div>

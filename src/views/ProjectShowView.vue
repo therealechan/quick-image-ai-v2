@@ -284,19 +284,19 @@ onMounted(() => {
         <div class="grid grid-cols-3 gap-4 mb-8">
           <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
             <div class="text-center">
-              <p class="text-xl font-bold text-white">{{ generatedImages.filter(img => img.serviceType === 'model').length }}</p>
+              <p class="text-lg font-bold text-white">{{ generatedImages.filter(img => img.serviceType === 'model').length }}</p>
               <p class="text-gray-400 text-xs">模特图</p>
             </div>
           </div>
           <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
             <div class="text-center">
-              <p class="text-xl font-bold text-white">{{ generatedImages.filter(img => img.serviceType === 'pose').length }}</p>
+              <p class="text-lg font-bold text-white">{{ generatedImages.filter(img => img.serviceType === 'pose').length }}</p>
               <p class="text-gray-400 text-xs">姿势图</p>
             </div>
           </div>
           <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
             <div class="text-center">
-              <p class="text-xl font-bold text-white">{{ generatedImages.filter(img => img.serviceType === 'upscale').length }}</p>
+              <p class="text-lg font-bold text-white">{{ generatedImages.filter(img => img.serviceType === 'upscale').length }}</p>
               <p class="text-gray-400 text-xs">高清图</p>
             </div>
           </div>

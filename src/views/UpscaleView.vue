@@ -121,13 +121,13 @@ onMounted(() => {
             <div class="flex space-x-2 mb-4">
               <button
                 @click="showImageSelection = true"
-                class="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700"
+                class="flex-1 py-2 px-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700 text-sm"
               >
                 从图库选择
               </button>
               <button
                 @click="uploadImages"
-                class="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700"
+                class="flex-1 py-2 px-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700 text-sm"
               >
                 上传图片
               </button>
@@ -195,7 +195,7 @@ onMounted(() => {
           <button
             @click="generateUpscaledImages"
             :disabled="getAllSelectedImages().length === 0 || isGenerating"
-            class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
+            class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
           >
             <span v-if="isGenerating">处理中...</span>
             <span v-else>开始放大</span>
@@ -299,7 +299,7 @@ onMounted(() => {
       <div class="bg-gray-900 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-6">
           <div>
-            <h3 class="text-xl font-bold text-white">选择图片</h3>
+            <h3 class="text-lg font-bold text-white">选择图片</h3>
             <p class="text-gray-400 text-sm mt-1">从图库中选择要放大的图片 (可多选)</p>
           </div>
           <button

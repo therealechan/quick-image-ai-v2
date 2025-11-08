@@ -165,7 +165,7 @@ const goToHome = () => {
       <div class="flex items-center justify-between p-6 border-b border-gray-800">
         <div v-if="isExpanded" class="flex items-center space-x-2 cursor-pointer" @click="goToHome">
           <Sparkles class="w-8 h-8 text-primary-500" />
-          <span class="text-lg font-bold gradient-text">Quickimage.ai</span>
+          <span class="text-base font-bold gradient-text">Quickimage.ai</span>
         </div>
         
         <div v-else class="flex items-center justify-center w-full cursor-pointer" @click="goToHome">
@@ -202,7 +202,7 @@ const goToHome = () => {
               @click="handleNavigation(item.path)"
               :class="[
                 'w-full rounded-lg text-left transition-all duration-200',
-                !isExpanded ? 'flex flex-col items-center justify-center py-3 px-2' : 'flex items-center space-x-3 px-4 py-3',
+                !isExpanded ? 'flex flex-col items-center justify-center py-2.5 px-2' : 'flex items-center space-x-3 px-3 py-2.5',
                 isActiveRoute(item.path)
                   ? 'bg-gradient-to-r from-primary-500/20 to-primary-600/20 text-primary-300 border border-primary-500/30'
                   : 'text-gray-300 hover:text-white hover:bg-gray-800'
@@ -219,7 +219,7 @@ const goToHome = () => {
               <span 
                 :class="[
                   'font-medium',
-                  !isExpanded ? 'text-xs text-center' : ''
+                  !isExpanded ? 'text-xs text-center' : 'text-sm'
                 ]"
               >
                 {{ !isExpanded ? item.shortName : item.name }}
@@ -240,7 +240,7 @@ const goToHome = () => {
               @click="handleNavigation(item.path)"
               :class="[
                 'w-full rounded-lg text-left transition-all duration-200',
-                !isExpanded ? 'flex flex-col items-center justify-center py-3 px-2' : 'flex items-center space-x-3 px-4 py-3',
+                !isExpanded ? 'flex flex-col items-center justify-center py-2.5 px-2' : 'flex items-center space-x-3 px-3 py-2.5',
                 isActiveRoute(item.path)
                   ? 'bg-gradient-to-r from-primary-500/20 to-primary-600/20 text-primary-300 border border-primary-500/30'
                   : 'text-gray-300 hover:text-white hover:bg-gray-800'
@@ -257,7 +257,7 @@ const goToHome = () => {
               <span 
                 :class="[
                   'font-medium',
-                  !isExpanded ? 'text-xs text-center' : ''
+                  !isExpanded ? 'text-xs text-center' : 'text-sm'
                 ]"
               >
                 {{ !isExpanded ? item.shortName : item.name }}

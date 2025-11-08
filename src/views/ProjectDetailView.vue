@@ -1505,7 +1505,7 @@ onMounted(() => {
               type="number"
               min="1"
               max="8"
-              class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               placeholder="输入生成数量 (1-8)"
             />
           </div>
@@ -1585,7 +1585,7 @@ onMounted(() => {
               <textarea
                 v-model="customPrompt"
                 placeholder="输入自定义的prompt描述..."
-                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none"
+                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none text-sm"
                 rows="3"
               ></textarea>
             </div>
@@ -2175,7 +2175,7 @@ onMounted(() => {
       <div class="bg-gray-900 rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[85vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-6">
           <div>
-            <h3 class="text-xl font-bold text-white">编辑 Prompt</h3>
+            <h3 class="text-lg font-bold text-white">编辑 Prompt</h3>
             <p class="text-gray-400 text-sm mt-1">
               {{ editingResults.length === 1 ? '编辑单个结果' : `批量编辑 ${editingResults.length} 个结果` }}
             </p>
@@ -2240,7 +2240,7 @@ onMounted(() => {
             <textarea
               v-model="editPrompt"
               placeholder="输入修改后的prompt描述..."
-              class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none min-h-[120px]"
+              class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none min-h-[120px] text-sm"
               rows="5"
             ></textarea>
           </div>
@@ -2304,7 +2304,7 @@ onMounted(() => {
         <!-- Modal Header -->
         <div class="flex justify-between items-center mb-6">
           <div>
-            <h3 class="text-xl font-bold text-white">
+            <h3 class="text-lg font-bold text-white">
               {{ showMaterialModal.tops ? '上装图库' : 
                   showMaterialModal.bottoms ? '下装图库' :
                   showMaterialModal.accessories ? '配饰图库' : '背景图库' }}

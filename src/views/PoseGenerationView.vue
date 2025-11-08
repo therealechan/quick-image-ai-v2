@@ -158,13 +158,13 @@ onMounted(() => {
             <div class="flex space-x-2 mb-4">
               <button
                 @click="showModelSelection = true"
-                class="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700"
+                class="flex-1 py-2 px-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700 text-sm"
               >
                 从图库选择
               </button>
               <button
                 @click="uploadModel"
-                class="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700"
+                class="flex-1 py-2 px-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors border border-gray-700 text-sm"
               >
                 上传图片
               </button>
@@ -199,7 +199,7 @@ onMounted(() => {
                 :key="template.id"
                 @click="selectPromptTemplate(template)"
                 :class="[
-                  'p-3 rounded-lg text-left transition-all border-2',
+                  'p-2.5 rounded-lg text-left transition-all border-2',
                   selectedPromptTemplate?.id === template.id 
                     ? 'border-primary-500 bg-primary-500/10 text-white' 
                     : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600'
@@ -216,7 +216,7 @@ onMounted(() => {
               <textarea
                 v-model="customPrompt"
                 placeholder="输入自定义的prompt描述..."
-                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none"
+                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none text-sm"
                 rows="3"
               ></textarea>
             </div>
@@ -263,7 +263,7 @@ onMounted(() => {
               type="number"
               min="1"
               max="8"
-              class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               placeholder="输入生成数量 (1-8)"
             />
           </div>
@@ -412,7 +412,7 @@ onMounted(() => {
       <div class="bg-gray-900 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-6">
           <div>
-            <h3 class="text-xl font-bold text-white">选择模特</h3>
+            <h3 class="text-lg font-bold text-white">选择模特</h3>
             <p class="text-gray-400 text-sm mt-1">从图库中选择适合的模特</p>
           </div>
           <button
