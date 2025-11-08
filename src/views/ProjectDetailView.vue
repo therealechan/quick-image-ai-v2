@@ -7,7 +7,7 @@ import { Upload, Download, Edit2, Check, Search, ChevronDown, ChevronUp, Star, F
 const isMobileMenuOpen = ref(false)
 
 // History panel state
-const isHistoryCollapsed = ref(false)
+const isHistoryCollapsed = ref(true)
 const historyRef = ref<InstanceType<typeof GenerationHistory>>()
 
 // Queue Item interface
