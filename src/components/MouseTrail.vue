@@ -109,47 +109,62 @@ class Line {
     let e = this.spring;
     let t = this.nodes[0];
 
+    if (!t) return;
+
     t.vx += (pos.x - t.x) * e;
     t.vy += (pos.y - t.y) * e;
 
     for (let i = 0, a = this.nodes.length; i < a; i++) {
-      t = this.nodes[i];
+      const currentNode = this.nodes[i];
+      if (!currentNode) continue;
 
       if (i > 0) {
-        const n = this.nodes[i - 1];
-        t.vx += (n.x - t.x) * e;
-        t.vy += (n.y - t.y) * e;
-        t.vx += n.vx * E.dampening;
-        t.vy += n.vy * E.dampening;
+        const prevNode = this.nodes[i - 1];
+        if (!prevNode) continue;
+        
+        currentNode.vx += (prevNode.x - currentNode.x) * e;
+        currentNode.vy += (prevNode.y - currentNode.y) * e;
+        currentNode.vx += prevNode.vx * E.dampening;
+        currentNode.vy += prevNode.vy * E.dampening;
       }
 
-      t.vx *= this.friction;
-      t.vy *= this.friction;
-      t.x += t.vx;
-      t.y += t.vy;
+      currentNode.vx *= this.friction;
+      currentNode.vy *= this.friction;
+      currentNode.x += currentNode.vx;
+      currentNode.y += currentNode.vy;
       e *= E.tension;
     }
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    let e: NodeType, t: NodeType;
-    let n = this.nodes[0].x;
-    let i = this.nodes[0].y;
+    if (this.nodes.length < 2) return;
+    
+    const firstNode = this.nodes[0];
+    if (!firstNode) return;
+    
+    let n = firstNode.x;
+    let i = firstNode.y;
 
     ctx.beginPath();
     ctx.moveTo(n, i);
 
     for (let a = 1, o = this.nodes.length - 2; a < o; a++) {
-      e = this.nodes[a];
-      t = this.nodes[a + 1];
+      const e = this.nodes[a];
+      const t = this.nodes[a + 1];
+      if (!e || !t) continue;
+      
       n = 0.5 * (e.x + t.x);
       i = 0.5 * (e.y + t.y);
       ctx.quadraticCurveTo(e.x, e.y, n, i);
     }
 
-    e = this.nodes[this.nodes.length - 2];
-    t = this.nodes[this.nodes.length - 1];
-    ctx.quadraticCurveTo(e.x, e.y, t.x, t.y);
+    const secondLastNode = this.nodes[this.nodes.length - 2];
+    const lastNode = this.nodes[this.nodes.length - 1];
+    
+    if (secondLastNode && lastNode) {
+      ctx.quadraticCurveTo(secondLastNode.x, secondLastNode.y, lastNode.x, lastNode.y);
+    }
+    
     ctx.stroke();
     ctx.closePath();
   }
