@@ -44,6 +44,7 @@ const uploadedTop = ref<string | null>(null)
 const uploadedBottom = ref<string | null>(null)
 const uploadedModel = ref<string | null>(null)
 const uploadedAccessory = ref<string | null>(null)
+const uploadedBackground = ref<string | null>(null)
 const selectedPose = ref<any>(null)
 const uploadedPose = ref<string | null>(null)
 const generatedResults = ref<any[]>([])
@@ -164,6 +165,8 @@ const selectAccessory = (accessory: any) => {
 
 const selectBackground = (background: any) => {
   selectedBackground.value = background
+  // Clear uploaded background when selecting predefined background
+  uploadedBackground.value = null
 }
 
 const selectAspectRatio = (ratio: any) => {
@@ -188,6 +191,13 @@ const uploadModelFile = () => {
 const uploadAccessoryFile = () => {
   // 模拟配饰文件上传
   uploadedAccessory.value = 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=150&h=150&fit=crop'
+}
+
+const uploadBackgroundFile = () => {
+  // 模拟背景文件上传
+  uploadedBackground.value = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=150&fit=crop'
+  // Clear selected background when uploading custom background
+  selectedBackground.value = null
 }
 
 const selectPose = (pose: any) => {
@@ -602,12 +612,16 @@ const saveToHistory = () => {
     })
   }
   
+  const currentBackground = uploadedBackground.value ? 
+    { id: 'uploaded', name: '上传的背景', thumbnail: uploadedBackground.value } : 
+    selectedBackground.value
+
   historyRef.value.addHistoryItem({
     models: currentModels,
     tops: currentTops,
     bottoms: currentBottoms,
     accessories: currentAccessories,
-    background: selectedBackground.value,
+    background: currentBackground,
     prompt: customPrompt.value,
     results: generatedResults.value,
     batchMode: batchMode.value
@@ -647,13 +661,21 @@ const useHistoryItem = (item: any) => {
   uploadedTop.value = null
   uploadedBottom.value = null
   uploadedAccessory.value = null
+  uploadedBackground.value = null
   
   // Restore selections from history
   selectedModels.value = item.models.filter((m: any) => m.id !== 'uploaded')
   selectedTops.value = item.tops.filter((t: any) => t.id !== 'uploaded')
   selectedBottoms.value = item.bottoms.filter((b: any) => b.id !== 'uploaded')
   selectedAccessories.value = item.accessories.filter((a: any) => a.id !== 'uploaded')
-  selectedBackground.value = item.background
+  
+  if (item.background?.id === 'uploaded') {
+    uploadedBackground.value = item.background.thumbnail
+    selectedBackground.value = null
+  } else {
+    selectedBackground.value = item.background
+  }
+  
   customPrompt.value = item.prompt
   batchMode.value = item.batchMode
   
@@ -742,7 +764,9 @@ const addToQueue = async () => {
     accessory: uploadedAccessory.value ? 
       { id: 'uploaded', name: '上传的配饰', thumbnail: uploadedAccessory.value } : 
       selectedAccessories.value[0],
-    background: selectedBackground.value,
+    background: uploadedBackground.value ? 
+      { id: 'uploaded', name: '上传的背景', thumbnail: uploadedBackground.value } : 
+      selectedBackground.value,
     prompt: customPrompt.value,
     promptTemplate: selectedPromptTemplate.value,
     count: generationCount.value,
@@ -768,6 +792,7 @@ const clearCurrentSelection = () => {
   uploadedTop.value = null
   uploadedBottom.value = null
   uploadedAccessory.value = null
+  uploadedBackground.value = null
   customPrompt.value = ''
   selectedPromptTemplate.value = null
   generationCount.value = 3
@@ -816,7 +841,14 @@ const editQueueItem = async (item: QueueItem) => {
     }
   }
   
-  selectedBackground.value = item.background
+  if (item.background?.id === 'uploaded') {
+    uploadedBackground.value = item.background.thumbnail
+    selectedBackground.value = null
+  } else {
+    selectedBackground.value = item.background
+    uploadedBackground.value = null
+  }
+  
   customPrompt.value = item.prompt
   selectedPromptTemplate.value = item.promptTemplate
   generationCount.value = item.count
@@ -1150,7 +1182,22 @@ onMounted(() => {
                 />
               </div>
             </div>
-            <div v-if="selectedBackground" class="mt-3 text-center">
+            
+            <!-- Upload Background Option -->
+            <div
+              @click="uploadBackgroundFile"
+              class="mt-4 border-2 border-dashed border-gray-700 hover:border-gray-600 rounded-lg p-4 text-center cursor-pointer transition-colors group"
+            >
+              <Upload class="h-6 w-6 text-gray-500 group-hover:text-gray-400 mx-auto mb-2" />
+              <p class="text-gray-500 group-hover:text-gray-400 text-sm">上传背景图</p>
+            </div>
+
+            <div v-if="uploadedBackground" class="mt-3 p-3 bg-gray-800 rounded-lg">
+              <img :src="uploadedBackground" alt="Uploaded background" class="w-16 h-16 object-cover rounded mx-auto mb-2" />
+              <p class="text-green-400 text-sm text-center">背景图上传成功</p>
+            </div>
+            
+            <div v-else-if="selectedBackground" class="mt-3 text-center">
               <span class="text-primary-400 text-sm">已选择: {{ selectedBackground.name }}</span>
             </div>
           </div>
@@ -1358,6 +1405,7 @@ onMounted(() => {
                       <img :src="item.top.thumbnail" alt="Top" class="w-8 h-8 object-cover rounded" />
                       <img :src="item.bottom.thumbnail" alt="Bottom" class="w-8 h-8 object-cover rounded" />
                       <img v-if="item.accessory" :src="item.accessory.thumbnail" alt="Accessory" class="w-8 h-8 object-cover rounded" />
+                      <img v-if="item.background" :src="item.background.thumbnail" alt="Background" class="w-8 h-8 object-cover rounded" />
                     </div>
                     
                     <!-- Item Details -->
@@ -1369,6 +1417,7 @@ onMounted(() => {
                       <div class="text-xs text-gray-400 space-y-0.5">
                         <p>{{ item.model.name }} • {{ item.top.name }} • {{ item.bottom.name }}</p>
                         <p v-if="item.accessory">{{ item.accessory.name }}</p>
+                        <p v-if="item.background">背景: {{ item.background.name }}</p>
                         <p v-if="item.aspectRatio">比例: {{ item.aspectRatio.name }}</p>
                         <p class="truncate">{{ item.prompt }}</p>
                       </div>
@@ -1584,7 +1633,7 @@ onMounted(() => {
                 <p v-if="batchMode">搭配数量：{{ new Set(generatedResults.map(r => r.combination?.id)).size }} 个</p>
                 <p v-if="batchMode">总图片数：{{ generatedResults.length }} 张</p>
                 <p v-if="selectedAccessories[0] || uploadedAccessory">配饰：{{ uploadedAccessory ? '上传的配饰' : selectedAccessories[0]?.name }}</p>
-                <p v-if="selectedBackground">背景：{{ selectedBackground.name }}</p>
+                <p v-if="selectedBackground || uploadedBackground">背景：{{ uploadedBackground ? '上传的背景' : selectedBackground.name }}</p>
                 <p v-if="selectedAspectRatio">图片比例：{{ selectedAspectRatio.name }}</p>
                 <p v-if="customPrompt">Prompt：{{ customPrompt.length > 50 ? customPrompt.substring(0, 50) + '...' : customPrompt }}</p>
               </div>
