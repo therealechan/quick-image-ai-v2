@@ -21,6 +21,7 @@ interface QueueItem {
   prompt: string
   promptTemplate?: any
   count: number
+  aspectRatio?: any
   createdAt: Date
 }
 
@@ -58,6 +59,9 @@ const editPrompt = ref('')
 const isRegenerating = ref(false)
 const selectedPromptTemplate = ref<any>(null)
 const customPrompt = ref('')
+
+// Aspect ratio selection
+const selectedAspectRatio = ref<any>(null)
 
 // Mock data
 const topClothingItems = ref([
@@ -105,6 +109,14 @@ const backgroundOptions = ref([
   { id: '6', name: '摄影棚', thumbnail: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=150&h=150&fit=crop', type: 'studio' }
 ])
 
+// Aspect ratio options
+const aspectRatioOptions = ref([
+  { id: '1:1', name: '1:1', width: 1, height: 1 },
+  { id: '3:4', name: '3:4', width: 3, height: 4 },
+  { id: '4:3', name: '4:3', width: 4, height: 3 },
+  { id: '9:16', name: '9:16', width: 9, height: 16 },
+  { id: '16:9', name: '16:9', width: 16, height: 9 }
+])
 
 // Prompt templates for model generation
 const promptTemplates = ref([
@@ -152,6 +164,10 @@ const selectAccessory = (accessory: any) => {
 
 const selectBackground = (background: any) => {
   selectedBackground.value = background
+}
+
+const selectAspectRatio = (ratio: any) => {
+  selectedAspectRatio.value = ratio
 }
 
 const uploadTopFile = () => {
@@ -295,8 +311,10 @@ const generateSingleImage = () => {
         model: uploadedModel.value ? '上传的模特' : selectedModels.value[0]?.name,
         top: selectedTops.value[0]?.name || '上传的上装',
         bottom: selectedBottoms.value[0]?.name || '上传的下装',
-        prompt: customPrompt.value.substring(0, 50) + '...'
-      }
+        prompt: customPrompt.value.substring(0, 50) + '...',
+        aspectRatio: selectedAspectRatio.value?.name || '3:4'
+      },
+      aspectRatio: selectedAspectRatio.value
     }))
     
     // Save to history
@@ -728,6 +746,7 @@ const addToQueue = async () => {
     prompt: customPrompt.value,
     promptTemplate: selectedPromptTemplate.value,
     count: generationCount.value,
+    aspectRatio: selectedAspectRatio.value,
     createdAt: new Date()
   }
   
@@ -752,6 +771,8 @@ const clearCurrentSelection = () => {
   customPrompt.value = ''
   selectedPromptTemplate.value = null
   generationCount.value = 3
+  // Keep aspect ratio selection as default 3:4
+  selectedAspectRatio.value = aspectRatioOptions.value.find(ratio => ratio.id === '3:4')
 }
 
 const removeFromQueue = (id: string) => {
@@ -799,6 +820,7 @@ const editQueueItem = async (item: QueueItem) => {
   customPrompt.value = item.prompt
   selectedPromptTemplate.value = item.promptTemplate
   generationCount.value = item.count
+  selectedAspectRatio.value = item.aspectRatio || aspectRatioOptions.value.find(ratio => ratio.id === '3:4')
   
   // Remove the item from queue after loading it for editing
   removeFromQueue(item.id)
@@ -837,6 +859,9 @@ const loadQueueFromStorage = () => {
 onMounted(() => {
   // 页面初始化
   loadQueueFromStorage()
+  
+  // Set default aspect ratio to 3:4 (portrait)
+  selectedAspectRatio.value = aspectRatioOptions.value.find(ratio => ratio.id === '3:4')
 })
 </script>
 
@@ -1143,6 +1168,53 @@ onMounted(() => {
             />
           </div>
 
+          <!-- Aspect Ratio Selection -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">图片比例</h2>
+            <div class="grid grid-cols-5 gap-3">
+              <div
+                v-for="ratio in aspectRatioOptions"
+                :key="ratio.id"
+                @click="selectAspectRatio(ratio)"
+                :class="[
+                  'relative cursor-pointer transition-all hover:scale-105 border-2 rounded-lg p-3',
+                  selectedAspectRatio?.id === ratio.id ? 'border-primary-500 bg-primary-500/10' : 'border-gray-700 hover:border-gray-600 bg-gray-800'
+                ]"
+              >
+                <!-- Visual preview of ratio -->
+                <div class="flex items-center justify-center mb-2 h-12">
+                  <div 
+                    :class="[
+                      'bg-gray-600 border border-gray-500 rounded-sm',
+                      selectedAspectRatio?.id === ratio.id ? 'bg-primary-400' : ''
+                    ]"
+                    :style="{
+                      width: Math.min(32, (ratio.width / Math.max(ratio.width, ratio.height)) * 32) + 'px',
+                      height: Math.min(32, (ratio.height / Math.max(ratio.width, ratio.height)) * 32) + 'px'
+                    }"
+                  ></div>
+                </div>
+                <!-- Ratio label -->
+                <div class="text-center">
+                  <span :class="[
+                    'text-sm font-medium',
+                    selectedAspectRatio?.id === ratio.id ? 'text-white' : 'text-gray-300'
+                  ]">{{ ratio.name }}</span>
+                </div>
+                <!-- Selected indicator -->
+                <div v-if="selectedAspectRatio?.id === ratio.id" class="absolute top-1 right-1">
+                  <div class="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-if="selectedAspectRatio" class="mt-3 text-center">
+              <span class="text-primary-400 text-sm">已选择: {{ selectedAspectRatio.name }}</span>
+            </div>
+          </div>
 
           <!-- Prompt Templates -->
           <div class="mb-8">
@@ -1297,6 +1369,7 @@ onMounted(() => {
                       <div class="text-xs text-gray-400 space-y-0.5">
                         <p>{{ item.model.name }} • {{ item.top.name }} • {{ item.bottom.name }}</p>
                         <p v-if="item.accessory">{{ item.accessory.name }}</p>
+                        <p v-if="item.aspectRatio">比例: {{ item.aspectRatio.name }}</p>
                         <p class="truncate">{{ item.prompt }}</p>
                       </div>
                     </div>
@@ -1378,7 +1451,14 @@ onMounted(() => {
                     <img
                       :src="result.url"
                       :alt="`Generated result ${result.id}`"
-                      class="w-full aspect-[3/4] object-cover rounded-lg"
+                      :class="[
+                        'w-full object-cover rounded-lg',
+                        (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '1:1' ? 'aspect-square' :
+                        (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '4:3' ? 'aspect-[4/3]' :
+                        (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '9:16' ? 'aspect-[9/16]' :
+                        (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '16:9' ? 'aspect-[16/9]' :
+                        'aspect-[3/4]'
+                      ]"
                     />
                     <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg">
                       <!-- Selection Checkbox -->
@@ -1443,7 +1523,14 @@ onMounted(() => {
                   <img
                     :src="result.url"
                     :alt="`Generated result ${result.id}`"
-                    class="w-full aspect-[3/4] object-cover rounded-lg"
+                    :class="[
+                      'w-full object-cover rounded-lg',
+                      (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '1:1' ? 'aspect-square' :
+                      (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '4:3' ? 'aspect-[4/3]' :
+                      (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '9:16' ? 'aspect-[9/16]' :
+                      (result.aspectRatio?.id || result.queueItem?.aspectRatio?.id) === '16:9' ? 'aspect-[16/9]' :
+                      'aspect-[3/4]'
+                    ]"
                   />
                   <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg">
                     <!-- Selection Checkbox -->
@@ -1498,6 +1585,7 @@ onMounted(() => {
                 <p v-if="batchMode">总图片数：{{ generatedResults.length }} 张</p>
                 <p v-if="selectedAccessories[0] || uploadedAccessory">配饰：{{ uploadedAccessory ? '上传的配饰' : selectedAccessories[0]?.name }}</p>
                 <p v-if="selectedBackground">背景：{{ selectedBackground.name }}</p>
+                <p v-if="selectedAspectRatio">图片比例：{{ selectedAspectRatio.name }}</p>
                 <p v-if="customPrompt">Prompt：{{ customPrompt.length > 50 ? customPrompt.substring(0, 50) + '...' : customPrompt }}</p>
               </div>
             </div>

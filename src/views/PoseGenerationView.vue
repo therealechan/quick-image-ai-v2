@@ -16,6 +16,9 @@ const generationCount = ref(3)
 const selectedPromptTemplate = ref<any>(null)
 const customPrompt = ref('')
 
+// Aspect ratio selection
+const selectedAspectRatio = ref<any>(null)
+
 // Mock data
 const poseTemplates = ref([
   { id: '1', name: '优雅站姿', thumbnail: 'https://images.unsplash.com/photo-1594736797933-d0d3023055e0?w=150&h=200&fit=crop', category: 'standing' },
@@ -34,6 +37,15 @@ const modelGallery = ref([
   { id: '4', name: '男性模特 B', thumbnail: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=200&fit=crop', type: 'male', style: 'casual' },
   { id: '5', name: '女性模特 C', thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=200&fit=crop', type: 'female', style: 'fashion' },
   { id: '6', name: '男性模特 C', thumbnail: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=200&fit=crop', type: 'male', style: 'sport' }
+])
+
+// Aspect ratio options
+const aspectRatioOptions = ref([
+  { id: '1:1', name: '1:1', width: 1, height: 1 },
+  { id: '3:4', name: '3:4', width: 3, height: 4 },
+  { id: '4:3', name: '4:3', width: 4, height: 3 },
+  { id: '9:16', name: '9:16', width: 9, height: 16 },
+  { id: '16:9', name: '16:9', width: 16, height: 9 }
 ])
 
 // Prompt templates
@@ -74,6 +86,10 @@ const selectModelFromGallery = (model: any) => {
   showModelSelection.value = false
 }
 
+const selectAspectRatio = (ratio: any) => {
+  selectedAspectRatio.value = ratio
+}
+
 const uploadModel = () => {
   // 模拟模特图上传
   uploadedModel.value = 'https://images.unsplash.com/photo-1594736797933-d0d3023055e0?w=300&h=400&fit=crop'
@@ -99,7 +115,8 @@ const generatePoseImages = () => {
     
     generatedResults.value = Array.from({ length: generationCount.value }, (_, index) => ({
       id: String(index + 1),
-      url: mockImages[index % mockImages.length]
+      url: mockImages[index % mockImages.length],
+      aspectRatio: selectedAspectRatio.value
     }))
     isGenerating.value = false
   }, 3000)
@@ -107,6 +124,9 @@ const generatePoseImages = () => {
 
 onMounted(() => {
   // 页面初始化
+  
+  // Set default aspect ratio to 3:4 (portrait)
+  selectedAspectRatio.value = aspectRatioOptions.value.find(ratio => ratio.id === '3:4')
 })
 </script>
 
@@ -248,6 +268,54 @@ onMounted(() => {
             />
           </div>
 
+          <!-- Aspect Ratio Selection -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">图片比例</h2>
+            <div class="grid grid-cols-5 gap-3">
+              <div
+                v-for="ratio in aspectRatioOptions"
+                :key="ratio.id"
+                @click="selectAspectRatio(ratio)"
+                :class="[
+                  'relative cursor-pointer transition-all hover:scale-105 border-2 rounded-lg p-3',
+                  selectedAspectRatio?.id === ratio.id ? 'border-primary-500 bg-primary-500/10' : 'border-gray-700 hover:border-gray-600 bg-gray-800'
+                ]"
+              >
+                <!-- Visual preview of ratio -->
+                <div class="flex items-center justify-center mb-2 h-12">
+                  <div 
+                    :class="[
+                      'bg-gray-600 border border-gray-500 rounded-sm',
+                      selectedAspectRatio?.id === ratio.id ? 'bg-primary-400' : ''
+                    ]"
+                    :style="{
+                      width: Math.min(32, (ratio.width / Math.max(ratio.width, ratio.height)) * 32) + 'px',
+                      height: Math.min(32, (ratio.height / Math.max(ratio.width, ratio.height)) * 32) + 'px'
+                    }"
+                  ></div>
+                </div>
+                <!-- Ratio label -->
+                <div class="text-center">
+                  <span :class="[
+                    'text-sm font-medium',
+                    selectedAspectRatio?.id === ratio.id ? 'text-white' : 'text-gray-300'
+                  ]">{{ ratio.name }}</span>
+                </div>
+                <!-- Selected indicator -->
+                <div v-if="selectedAspectRatio?.id === ratio.id" class="absolute top-1 right-1">
+                  <div class="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-if="selectedAspectRatio" class="mt-3 text-center">
+              <span class="text-primary-400 text-sm">已选择: {{ selectedAspectRatio.name }}</span>
+            </div>
+          </div>
+
           <!-- Generate Button -->
           <button
             @click="generatePoseImages"
@@ -286,7 +354,14 @@ onMounted(() => {
               <img
                 :src="result.url"
                 :alt="`Generated result ${result.id}`"
-                class="w-full aspect-[3/4] object-cover rounded-lg"
+                :class="[
+                  'w-full object-cover rounded-lg',
+                  result.aspectRatio?.id === '1:1' ? 'aspect-square' :
+                  result.aspectRatio?.id === '4:3' ? 'aspect-[4/3]' :
+                  result.aspectRatio?.id === '9:16' ? 'aspect-[9/16]' :
+                  result.aspectRatio?.id === '16:9' ? 'aspect-[16/9]' :
+                  'aspect-[3/4]'
+                ]"
               />
               <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg">
                 <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -310,7 +385,14 @@ onMounted(() => {
                   <img
                     :src="sample.url"
                     :alt="`Sample ${sample.id}`"
-                    class="w-full aspect-[3/4] object-cover rounded-lg opacity-60"
+                    :class="[
+                      'w-full object-cover rounded-lg opacity-60',
+                      selectedAspectRatio?.id === '1:1' ? 'aspect-square' :
+                      selectedAspectRatio?.id === '4:3' ? 'aspect-[4/3]' :
+                      selectedAspectRatio?.id === '9:16' ? 'aspect-[9/16]' :
+                      selectedAspectRatio?.id === '16:9' ? 'aspect-[16/9]' :
+                      'aspect-[3/4]'
+                    ]"
                   />
                 </div>
               </div>
