@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
 import GenerationHistory from '../components/GenerationHistory.vue'
 import { Upload, Download, Edit2, Check } from 'lucide-vue-next'
@@ -668,7 +668,8 @@ const toggleHistoryCollapse = () => {
   isHistoryCollapsed.value = !isHistoryCollapsed.value
 }
 
-const scrollToTop = () => {
+const scrollToTop = async () => {
+  await nextTick()
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
@@ -702,7 +703,7 @@ const validateCurrentSelection = () => {
   return errors
 }
 
-const addToQueue = () => {
+const addToQueue = async () => {
   const errors = validateCurrentSelection()
   if (errors.length > 0) {
     alert(errors.join('\n'))
@@ -735,7 +736,7 @@ const addToQueue = () => {
   saveQueueToStorage()
   
   // Scroll to top for better UX
-  scrollToTop()
+  await scrollToTop()
 }
 
 const clearCurrentSelection = () => {
@@ -758,7 +759,7 @@ const removeFromQueue = (id: string) => {
   saveQueueToStorage()
 }
 
-const editQueueItem = (item: QueueItem) => {
+const editQueueItem = async (item: QueueItem) => {
   // Load the queue item data back to current selection
   if (item.model.id === 'uploaded') {
     uploadedModel.value = item.model.thumbnail
@@ -804,7 +805,7 @@ const editQueueItem = (item: QueueItem) => {
   editingQueueItem.value = null
   
   // Scroll to top for better UX
-  scrollToTop()
+  await scrollToTop()
 }
 
 const clearQueue = () => {
