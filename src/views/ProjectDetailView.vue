@@ -16,7 +16,7 @@ interface QueueItem {
   model: any
   top: any  
   bottom: any
-  accessory?: any
+  accessories: any[]
   background?: any
   prompt: string
   promptTemplate?: any
@@ -207,8 +207,15 @@ const selectModel = (model: any) => {
 }
 
 const selectAccessory = (accessory: any) => {
-  // Always single select now
-  selectedAccessories.value = [accessory]
+  // Support multi-select for accessories
+  const index = selectedAccessories.value.findIndex(item => item.id === accessory.id)
+  if (index > -1) {
+    // Remove if already selected
+    selectedAccessories.value.splice(index, 1)
+  } else {
+    // Add to selection
+    selectedAccessories.value.push(accessory)
+  }
 }
 
 const selectBackground = (background: any) => {
@@ -219,6 +226,58 @@ const selectBackground = (background: any) => {
 
 const selectAspectRatio = (ratio: any) => {
   selectedAspectRatio.value = ratio
+}
+
+// Accessory conflict detection
+const checkAccessoryConflicts = (accessories: any[]) => {
+  const categoryCounts = accessories.reduce((acc, accessory) => {
+    const category = accessory.category
+    acc[category] = (acc[category] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+  
+  const conflicts = Object.entries(categoryCounts)
+    .filter(([_, count]) => (count as number) > 1)
+    .map(([category, count]) => ({
+      category,
+      count: count as number,
+      items: accessories.filter(acc => acc.category === category)
+    }))
+  
+  return conflicts
+}
+
+const getAccessoryConflictMessage = (conflicts: any[]) => {
+  if (conflicts.length === 0) return ''
+  
+  const messages = conflicts.map(conflict => {
+    const categoryNames = {
+      'eyewear': '眼镜',
+      'watch': '手表', 
+      'jewelry': '首饰',
+      'bag': '包包',
+      'hat': '帽子',
+      'scarf': '围巾'
+    }
+    const categoryName = categoryNames[conflict.category as keyof typeof categoryNames] || conflict.category
+    
+    const itemNames = conflict.items.map((item: any) => item.name).join('、')
+    return `${categoryName}类：选择了${conflict.count}个（${itemNames}），最终只会随机显示1个`
+  })
+  
+  return `检测到配饰冲突：\n${messages.join('\n')}\n\n是否继续生成？`
+}
+
+const getCategoryDisplayName = (category: string) => {
+  const categoryNames = {
+    'eyewear': '眼镜',
+    'watch': '手表', 
+    'jewelry': '首饰',
+    'bag': '包包',
+    'hat': '帽子',
+    'scarf': '围巾'
+  }
+  return categoryNames[category as keyof typeof categoryNames] || category
 }
 
 // Material management functions
@@ -383,6 +442,12 @@ const modalFilteredBackgroundItems = computed(() => {
   })
 })
 
+// Accessory conflicts computed property
+const accessoryConflicts = computed(() => {
+  if (selectedAccessories.value.length <= 1) return []
+  return checkAccessoryConflicts(selectedAccessories.value)
+})
+
 const uploadTopFile = () => {
   // 模拟上衣文件上传
   uploadedTop.value = 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=300&h=400&fit=crop'
@@ -459,7 +524,7 @@ const generateCombinations = () => {
           model,
           top,
           bottom,
-          accessory: selectedAccessories.value[0] || null,
+          accessories: [...selectedAccessories.value],
           name: `${model.name} + ${top.name} + ${bottom.name}`,
           selected: true
         })
@@ -580,7 +645,7 @@ const generateQueueItems = () => {
             model: queueItem.model.name,
             top: queueItem.top.name,
             bottom: queueItem.bottom.name,
-            accessory: queueItem.accessory?.name || null,
+            accessories: queueItem.accessories.map(acc => acc.name).join(', ') || null,
             background: queueItem.background?.name || '默认背景',
             prompt: queueItem.prompt.substring(0, 50) + (queueItem.prompt.length > 50 ? '...' : '')
           }
@@ -643,7 +708,7 @@ const generateBatchImages = () => {
             model: uploadedModel.value ? '上传的模特' : selectedModels.value[0]?.name,
             top: combo.top.name,
             bottom: combo.bottom.name,
-            accessory: combo.accessory?.name || null,
+            accessories: combo.accessories.map((acc: any) => acc.name).join(', ') || null,
             prompt: customPrompt.value.substring(0, 50) + '...'
           }
         })
@@ -846,7 +911,7 @@ const saveQueueToHistory = () => {
   const allModels = generationQueue.value.map(item => item.model)
   const allTops = generationQueue.value.map(item => item.top)
   const allBottoms = generationQueue.value.map(item => item.bottom)
-  const allAccessories = generationQueue.value.filter(item => item.accessory).map(item => item.accessory)
+  const allAccessories = generationQueue.value.flatMap(item => item.accessories)
   const combinedPrompt = generationQueue.value.map(item => `${item.count}x ${item.prompt}`).join(' | ')
   
   historyRef.value.addHistoryItem({
@@ -971,9 +1036,9 @@ const addToQueue = async () => {
     bottom: uploadedBottom.value ? 
       { id: 'uploaded', name: '上传的下装', thumbnail: uploadedBottom.value } : 
       selectedBottoms.value[0],
-    accessory: uploadedAccessory.value ? 
-      { id: 'uploaded', name: '上传的配饰', thumbnail: uploadedAccessory.value } : 
-      selectedAccessories.value[0],
+    accessories: uploadedAccessory.value ? 
+      [{ id: 'uploaded', name: '上传的配饰', thumbnail: uploadedAccessory.value }] : 
+      [...selectedAccessories.value],
     background: uploadedBackground.value ? 
       { id: 'uploaded', name: '上传的背景', thumbnail: uploadedBackground.value } : 
       selectedBackground.value,
@@ -1041,12 +1106,13 @@ const editQueueItem = async (item: QueueItem) => {
     uploadedBottom.value = null
   }
   
-  if (item.accessory) {
-    if (item.accessory.id === 'uploaded') {
-      uploadedAccessory.value = item.accessory.thumbnail
-      selectedAccessories.value = []
+  if (item.accessories && item.accessories.length > 0) {
+    const uploadedAcc = item.accessories.find(acc => acc.id === 'uploaded')
+    if (uploadedAcc) {
+      uploadedAccessory.value = uploadedAcc.thumbnail
+      selectedAccessories.value = item.accessories.filter(acc => acc.id !== 'uploaded')
     } else {
-      selectedAccessories.value = [item.accessory]
+      selectedAccessories.value = [...item.accessories]
       uploadedAccessory.value = null
     }
   }
@@ -1378,10 +1444,35 @@ onMounted(() => {
 
           <!-- Accessory Selection -->
           <div class="mb-8">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-2">
               <h2 class="text-lg font-semibold text-white">选择配饰</h2>
               <div v-if="selectedAccessories.length > 0" class="text-xs text-primary-400">
-                已选择: {{ selectedAccessories[0]?.name }}
+                已选择 {{ selectedAccessories.length }} 个: {{ selectedAccessories.map(acc => acc.name).join(', ') }}
+              </div>
+            </div>
+            
+            <!-- Accessory Selection Notice -->
+            <div class="mb-4 p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+              <p class="text-sm text-gray-300 mb-1">
+                💡 <span class="font-medium">配饰选择说明：</span>
+              </p>
+              <p class="text-xs text-gray-400">
+                • 可以同时选择多个配饰（如手表+项链+太阳镜）<br>
+                • 如果选择了多个同类型配饰（如多个背包），最终只会随机显示其中一个
+              </p>
+            </div>
+            
+            <!-- Accessory Conflict Warning -->
+            <div v-if="accessoryConflicts.length > 0" class="mb-4 p-3 bg-yellow-900/50 border border-yellow-600 rounded-lg">
+              <p class="text-sm text-yellow-300 mb-1">
+                ⚠️ <span class="font-medium">检测到配饰冲突：</span>
+              </p>
+              <div class="text-xs text-yellow-200 space-y-1">
+                <div v-for="conflict in accessoryConflicts" :key="conflict.category">
+                  <span class="font-medium">{{ getCategoryDisplayName(conflict.category) }}类：</span>
+                  选择了{{ conflict.count }}个（{{ conflict.items.map(item => item.name).join('、') }}），
+                  <span class="text-yellow-300">最终只会随机显示1个</span>
+                </div>
               </div>
             </div>
             
@@ -1393,7 +1484,7 @@ onMounted(() => {
                 @click="selectAccessory(accessory)"
                 :class="[
                   'relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-105 border-2',
-                  selectedAccessories[0]?.id === accessory.id ? 'border-primary-500 ring-1 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
+                  selectedAccessories.some(acc => acc.id === accessory.id) ? 'border-primary-500 ring-1 ring-primary-500/50' : 'border-gray-700 hover:border-gray-600'
                 ]"
               >
                 <img
@@ -1408,7 +1499,7 @@ onMounted(() => {
                 </div>
                 
                 <!-- Selected indicator -->
-                <div v-if="selectedAccessories[0]?.id === accessory.id" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div v-if="selectedAccessories.some(acc => acc.id === accessory.id)" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center ring-2 ring-white">
                     <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -1793,7 +1884,7 @@ onMounted(() => {
                       <img :src="item.model.thumbnail" alt="Model" class="w-8 h-8 object-cover rounded" />
                       <img :src="item.top.thumbnail" alt="Top" class="w-8 h-8 object-cover rounded" />
                       <img :src="item.bottom.thumbnail" alt="Bottom" class="w-8 h-8 object-cover rounded" />
-                      <img v-if="item.accessory" :src="item.accessory.thumbnail" alt="Accessory" class="w-8 h-8 object-cover rounded" />
+                      <img v-for="accessory in item.accessories" :key="accessory.id" :src="accessory.thumbnail" alt="Accessory" class="w-8 h-8 object-cover rounded" />
                       <img v-if="item.background" :src="item.background.thumbnail" alt="Background" class="w-8 h-8 object-cover rounded" />
                     </div>
                     
@@ -1805,7 +1896,7 @@ onMounted(() => {
                       </div>
                       <div class="text-xs text-gray-400 space-y-0.5">
                         <p>{{ item.model.name }} • {{ item.top.name }} • {{ item.bottom.name }}</p>
-                        <p v-if="item.accessory">{{ item.accessory.name }}</p>
+                        <p v-if="item.accessories.length > 0">配饰: {{ item.accessories.map(acc => acc.name).join(', ') }}</p>
                         <p v-if="item.background">背景: {{ item.background.name }}</p>
                         <p v-if="item.aspectRatio">比例: {{ item.aspectRatio.name }}</p>
                         <p class="truncate">{{ item.prompt }}</p>
@@ -2031,7 +2122,7 @@ onMounted(() => {
                 <p v-if="!batchMode && (selectedBottoms[0] || uploadedBottom)">下装：{{ selectedBottoms[0]?.name || '上传的下装' }}</p>
                 <p v-if="batchMode">搭配数量：{{ new Set(generatedResults.map(r => r.combination?.id)).size }} 个</p>
                 <p v-if="batchMode">总图片数：{{ generatedResults.length }} 张</p>
-                <p v-if="selectedAccessories[0] || uploadedAccessory">配饰：{{ uploadedAccessory ? '上传的配饰' : selectedAccessories[0]?.name }}</p>
+                <p v-if="selectedAccessories.length > 0 || uploadedAccessory">配饰：{{ uploadedAccessory ? '上传的配饰' : selectedAccessories.map(acc => acc.name).join(', ') }}</p>
                 <p v-if="selectedBackground || uploadedBackground">背景：{{ uploadedBackground ? '上传的背景' : selectedBackground.name }}</p>
                 <p v-if="selectedAspectRatio">图片比例：{{ selectedAspectRatio.name }}</p>
                 <p v-if="customPrompt">Prompt：{{ customPrompt.length > 50 ? customPrompt.substring(0, 50) + '...' : customPrompt }}</p>
