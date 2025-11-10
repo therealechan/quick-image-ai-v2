@@ -418,7 +418,7 @@ onMounted(() => {
 
           <!-- Model Selection -->
           <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">选择模特</h2>
+            <h2 class="text-lg font-semibold text-white mb-4">选择模特 <span class="text-red-400">*</span></h2>
             
             <!-- Toggle between gallery and upload -->
             <div class="flex space-x-2 mb-4">
@@ -666,9 +666,6 @@ onMounted(() => {
 
           <div class="mt-4 text-center">
             <p class="text-gray-500 text-sm">预计生成时间：2-3分钟</p>
-            <p class="text-gray-500 text-xs">
-              必选：选择模特 + {{ generationMode === 'prompt' ? '文字描述' : '参考姿势' }}
-            </p>
           </div>
         </div>
       </div>

@@ -1238,7 +1238,7 @@ onMounted(() => {
           <!-- Model Selection -->
           <div class="mb-8">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-semibold text-white">选择模特</h2>
+              <h2 class="text-lg font-semibold text-white">选择模特 <span class="text-red-400">*</span></h2>
               <div v-if="selectedModels.length > 0" class="text-xs text-primary-400">
                 已选择: {{ selectedModels[0].name }}
               </div>
@@ -1292,7 +1292,7 @@ onMounted(() => {
           <!-- Top Clothing Selection -->
           <div class="mb-8">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-semibold text-white">选择上装</h2>
+              <h2 class="text-lg font-semibold text-white">选择上装 <span class="text-red-400">*</span></h2>
               <div v-if="selectedTops.length > 0" class="text-xs text-primary-400">
                 已选择: {{ selectedTops[0].name }}
               </div>
@@ -1367,7 +1367,7 @@ onMounted(() => {
           <!-- Bottom Clothing Selection -->
           <div class="mb-8">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-semibold text-white">选择下装</h2>
+              <h2 class="text-lg font-semibold text-white">选择下装 <span class="text-red-400">*</span></h2>
               <div v-if="selectedBottoms.length > 0" class="text-xs text-primary-400">
                 已选择: {{ selectedBottoms[0].name }}
               </div>
@@ -1742,7 +1742,7 @@ onMounted(() => {
 
           <!-- Prompt Templates -->
           <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">Prompt模板</h2>
+            <h2 class="text-lg font-semibold text-white mb-4">Prompt模板 <span class="text-red-400">*</span></h2>
             
             <div class="grid grid-cols-2 gap-3 mb-4">
               <button
@@ -1815,9 +1815,6 @@ onMounted(() => {
             <div class="mt-4 text-center">
               <p class="text-gray-500 text-sm">
                 预计生成时间：3-5分钟
-              </p>
-              <p class="text-gray-500 text-xs">
-                需要选择模特、上装和prompt
               </p>
             </div>
           </div>
