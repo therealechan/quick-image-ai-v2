@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils'
+import { useRouter } from 'vue-router'
 import { Grid3X3, Calendar, BarChart3, Archive, FolderOpen, Settings } from 'lucide-vue-next'
 import type { GroupByType } from '@/types/album'
 
@@ -16,8 +17,9 @@ defineProps<{
 
 const emit = defineEmits<{
   change: [value: GroupByType]
-  manageAlbums: []
 }>()
+
+const router = useRouter()
 
 const groupOptions: GroupOption[] = [
   {
@@ -55,6 +57,10 @@ const groupOptions: GroupOption[] = [
 const handleGroupChange = (value: GroupByType) => {
   emit('change', value)
 }
+
+const handleManageAlbums = () => {
+  router.push('/albums')
+}
 </script>
 
 <template>
@@ -87,7 +93,7 @@ const handleGroupChange = (value: GroupByType) => {
       
       <!-- Manage Albums Button -->
       <button
-        @click="emit('manageAlbums')"
+        @click="handleManageAlbums"
         class="flex items-center space-x-2 px-4 py-2 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-200 text-sm font-medium"
       >
         <Settings class="w-4 h-4" />
@@ -123,7 +129,7 @@ const handleGroupChange = (value: GroupByType) => {
       
       <!-- Mobile Manage Albums Button -->
       <button
-        @click="emit('manageAlbums')"
+        @click="handleManageAlbums"
         class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-200 text-sm font-medium"
       >
         <Settings class="w-4 h-4" />

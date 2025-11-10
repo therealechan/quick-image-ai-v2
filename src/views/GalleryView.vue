@@ -6,7 +6,6 @@ import ImageGallery from '@/components/ImageGallery.vue'
 import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
 import AlbumSelector from '@/components/AlbumSelector.vue'
 import CreateAlbumModal from '@/components/CreateAlbumModal.vue'
-import AlbumManager from '@/components/AlbumManager.vue'
 import type { GalleryImage, GroupByType, Album, AlbumGroup, CreateAlbumData } from '@/types/album'
 
 const isMobileMenuOpen = ref(false)
@@ -16,7 +15,6 @@ const isPreviewOpen = ref(false)
 
 const isAlbumSelectorOpen = ref(false)
 const isCreateAlbumModalOpen = ref(false)
-const isAlbumManagerOpen = ref(false)
 const selectedImageIds = ref<string[]>([])
 const editingAlbum = ref<Album | null>(null)
 
@@ -309,32 +307,9 @@ const handleUpdateAlbum = (albumId: string, data: CreateAlbumData) => {
   editingAlbum.value = null
 }
 
-const handleOpenAlbumManager = () => {
-  isAlbumManagerOpen.value = true
-}
-
-const handleCloseAlbumManager = () => {
-  isAlbumManagerOpen.value = false
-}
-
 const handleEditAlbum = (album: Album) => {
   editingAlbum.value = album
   isCreateAlbumModalOpen.value = true
-  isAlbumManagerOpen.value = false
-}
-
-const handleDeleteAlbum = (albumId: string) => {
-  mockAlbums.value = mockAlbums.value.filter(album => album.id !== albumId)
-  mockImages.value.forEach(image => {
-    if (image.albumId === albumId) {
-      image.albumId = undefined
-    }
-  })
-}
-
-const handleSelectAlbum = (album: Album) => {
-  groupBy.value = 'album'
-  isAlbumManagerOpen.value = false
 }
 
 onMounted(() => {
@@ -360,7 +335,6 @@ onMounted(() => {
         <TimeGroupSelector 
           :current-group-by="groupBy" 
           @change="handleGroupByChange" 
-          @manage-albums="handleOpenAlbumManager"
         />
       </div>
 
@@ -401,25 +375,6 @@ onMounted(() => {
           />
         </div>
 
-        <!-- Create New Album Card (only show in album grouping) -->
-        <div v-if="groupBy === 'album'" class="group-section">
-          <div class="flex items-center justify-center">
-            <button
-              @click="handleCreateNewAlbum"
-              class="group w-full max-w-sm p-8 bg-gray-800/30 border-2 border-dashed border-gray-600 hover:border-primary-500/50 rounded-xl transition-all duration-300 hover:bg-gray-800/50"
-            >
-              <div class="text-center">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-500/20 rounded-full mb-4 group-hover:bg-primary-500/30 transition-colors">
-                  <svg class="w-8 h-8 text-primary-400 group-hover:text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                  </svg>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-300 group-hover:text-white mb-2">创建新相册</h3>
-                <p class="text-sm text-gray-500 group-hover:text-gray-400">点击创建一个新的图片相册</p>
-              </div>
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Empty State -->
@@ -464,36 +419,6 @@ onMounted(() => {
         @update="handleUpdateAlbum"
       />
 
-      <!-- Album Manager Modal -->
-      <div 
-        v-if="isAlbumManagerOpen"
-        class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto"
-      >
-        <div class="min-h-screen px-4 py-8">
-          <div class="max-w-7xl mx-auto bg-gray-900 border border-gray-700 rounded-xl shadow-2xl">
-            <div class="p-6 border-b border-gray-700 flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-white">相册管理</h2>
-              <button
-                @click="handleCloseAlbumManager"
-                class="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            </div>
-            <div class="p-6">
-              <AlbumManager
-                :albums="mockAlbums"
-                @create-album="handleCreateNewAlbum"
-                @edit-album="handleEditAlbum"
-                @delete-album="handleDeleteAlbum"
-                @select-album="handleSelectAlbum"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
       </div>
     </main>
   </div>

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardSidebar from '@/components/DashboardSidebar.vue'
 import AlbumManager from '@/components/AlbumManager.vue'
 import CreateAlbumModal from '@/components/CreateAlbumModal.vue'
 import type { Album, CreateAlbumData } from '@/types/album'
+
+const router = useRouter()
 
 const isMobileMenuOpen = ref(false)
 const isCreateAlbumModalOpen = ref(false)
@@ -15,6 +18,10 @@ const toggleMobileMenu = () => {
 
 const closeMobileMenu = () => {
   isMobileMenuOpen.value = false
+}
+
+const goToGallery = () => {
+  router.push('/gallery')
 }
 
 const mockAlbums = ref<Album[]>([
@@ -116,69 +123,21 @@ const handleSelectAlbum = (album: Album) => {
     <!-- Main Content -->
     <main class="flex-1 overflow-hidden">
       <div class="h-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-y-auto">
-        <div class="container mx-auto px-4 py-8">
-          <!-- Header -->
-          <div class="mb-8">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="p-3 bg-primary-500/20 rounded-xl">
-                <svg class="w-8 h-8 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                </svg>
-              </div>
-              <div>
-                <h1 class="text-3xl font-bold text-white">相册管理</h1>
-                <p class="text-gray-400 mt-1">创建和管理您的图片相册</p>
-              </div>
-            </div>
-            
-            <!-- Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-gray-400 text-sm">总相册数</p>
-                    <p class="text-2xl font-bold text-white">{{ mockAlbums.length }}</p>
-                  </div>
-                  <div class="p-3 bg-blue-500/20 rounded-lg">
-                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-gray-400 text-sm">总图片数</p>
-                    <p class="text-2xl font-bold text-white">{{ mockAlbums.reduce((sum, album) => sum + album.imageCount, 0) }}</p>
-                  </div>
-                  <div class="p-3 bg-green-500/20 rounded-lg">
-                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-gray-400 text-sm">最近更新</p>
-                    <p class="text-2xl font-bold text-white">
-                      {{ mockAlbums.length > 0 ? 
-                        Math.max(...mockAlbums.map(a => a.updatedAt.getTime())) > Date.now() - 86400000 ? '今天' : '1天前'
-                        : '-' }}
-                    </p>
-                  </div>
-                  <div class="p-3 bg-purple-500/20 rounded-lg">
-                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div class="container mx-auto px-4 py-6">
+          <!-- Breadcrumb -->
+          <div class="mb-6">
+            <nav class="flex items-center space-x-2 text-sm">
+              <button
+                @click="goToGallery"
+                class="text-gray-400 hover:text-primary-300 transition-colors"
+              >
+                图片库
+              </button>
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+              <span class="text-white font-medium">管理相册</span>
+            </nav>
           </div>
 
           <!-- Album Manager -->

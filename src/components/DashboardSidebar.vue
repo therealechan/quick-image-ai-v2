@@ -11,7 +11,6 @@ import {
   CreditCard, 
   LogOut, 
   Sparkles,
-  FolderOpen,
   X
 } from 'lucide-vue-next'
 
@@ -100,13 +99,6 @@ const navigationItems = ref([
     active: false
   },
   {
-    name: '相册管理',
-    shortName: '相册',
-    path: '/albums',
-    icon: FolderOpen,
-    active: false
-  },
-  {
     name: '设置',
     shortName: '设置',
     path: '/settings',
@@ -128,7 +120,7 @@ const isActiveRoute = (path: string) => {
 
 const handleNavigation = (path: string) => {
   // 已实现的功能直接跳转
-  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/gallery' || path === '/albums') {
+  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/gallery') {
     router.push(path)
   } else {
     // For now, show placeholder for non-implemented routes
