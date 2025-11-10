@@ -11,6 +11,9 @@ const isMobileMenuOpen = ref(false)
 const isHistoryCollapsed = ref(true)
 const historyRef = ref<InstanceType<typeof GenerationHistory>>()
 
+// Generation mode selection
+const generationMode = ref<'prompt' | 'pose'>('prompt')
+
 // Selection states
 const selectedPose = ref<any>(null)
 const selectedModel = ref<any>(null)
@@ -109,6 +112,22 @@ const useHistoryItem = (historyItem: any) => {
   if (historyItem.type !== 'pose') return
   
   const poseItem = historyItem as PoseHistoryItem
+  
+  // 根据历史记录确定生成模式
+  if (poseItem.selectedPose) {
+    generationMode.value = 'pose'
+    selectedPose.value = poseItem.selectedPose
+    // 清空prompt相关内容
+    selectedPromptTemplate.value = null
+    customPrompt.value = ''
+  } else if (poseItem.prompt || poseItem.promptTemplate) {
+    generationMode.value = 'prompt'
+    selectedPromptTemplate.value = poseItem.promptTemplate
+    customPrompt.value = poseItem.prompt
+    // 清空姿势选择
+    selectedPose.value = null
+  }
+  
   // 恢复模特选择
   if (poseItem.model) {
     selectedModel.value = poseItem.model
@@ -118,18 +137,35 @@ const useHistoryItem = (historyItem: any) => {
     selectedModel.value = null
   }
   
-  // 恢复姿势选择
-  selectedPose.value = poseItem.selectedPose
-  
-  // 恢复prompt设置
-  selectedPromptTemplate.value = poseItem.promptTemplate
-  customPrompt.value = poseItem.prompt
-  
   // 恢复生成设置
   generationCount.value = poseItem.generationCount
   selectedAspectRatio.value = poseItem.aspectRatio
   
-  console.log('已恢复历史配置:', poseItem)
+  console.log('已恢复历史配置:', poseItem, '生成模式:', generationMode.value)
+}
+
+const switchGenerationMode = (mode: 'prompt' | 'pose') => {
+  if (generationMode.value === mode) return
+  
+  // 如果有输入内容，询问用户是否确认切换
+  const hasPromptInput = customPrompt.value.trim() || selectedPromptTemplate.value
+  const hasPoseInput = selectedPose.value
+  
+  if ((mode === 'pose' && hasPromptInput) || (mode === 'prompt' && hasPoseInput)) {
+    if (!confirm('切换模式将清空当前输入的内容，是否继续？')) {
+      return
+    }
+  }
+  
+  generationMode.value = mode
+  
+  // 清空对应的输入
+  if (mode === 'pose') {
+    selectedPromptTemplate.value = null
+    customPrompt.value = ''
+  } else {
+    selectedPose.value = null
+  }
 }
 
 const selectPose = (pose: any) => {
@@ -157,9 +193,23 @@ const uploadModel = () => {
 }
 
 const generatePoseImages = () => {
-  if ((!selectedModel.value && !uploadedModel.value) || !customPrompt.value.trim()) {
-    alert('请选择模特并输入prompt')
+  // 检查是否选择了模特
+  if (!selectedModel.value && !uploadedModel.value) {
+    alert('请先选择模特')
     return
+  }
+  
+  // 根据生成模式进行验证
+  if (generationMode.value === 'prompt') {
+    if (!customPrompt.value.trim()) {
+      alert('请输入文字描述或选择prompt模板')
+      return
+    }
+  } else {
+    if (!selectedPose.value) {
+      alert('请选择参考姿势')
+      return
+    }
   }
   
   isGenerating.value = true
@@ -194,10 +244,11 @@ const saveToHistory = (results: any[]) => {
     type: 'pose',
     model: selectedModel.value,
     uploadedModel: uploadedModel.value,
-    selectedPose: selectedPose.value,
+    // 根据生成模式保存相应数据
+    selectedPose: generationMode.value === 'pose' ? selectedPose.value : null,
     uploadedPose: null, // TODO: 当支持上传自定义姿势时使用
-    promptTemplate: selectedPromptTemplate.value,
-    prompt: customPrompt.value,
+    promptTemplate: generationMode.value === 'prompt' ? selectedPromptTemplate.value : null,
+    prompt: generationMode.value === 'prompt' ? customPrompt.value : '',
     generationCount: generationCount.value,
     aspectRatio: selectedAspectRatio.value,
     results: results.map(r => ({ id: r.id, url: r.url }))
@@ -322,7 +373,47 @@ onMounted(() => {
           <!-- Header -->
           <div class="mb-8">
             <h1 class="text-2xl font-bold text-white mb-2">姿势图生成</h1>
-            <p class="text-gray-400">上传模特图，选择姿势参考，生成新姿势</p>
+            <p class="text-gray-400">选择生成方式：文字描述或参考图片</p>
+          </div>
+
+          <!-- Generation Mode Toggle -->
+          <div class="mb-8">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-white">生成方式</h2>
+                <p class="text-sm text-gray-400">
+                  {{ generationMode === 'prompt' ? '使用文字描述生成想要的姿势' : '使用参考图片模仿姿势动作' }}
+                </p>
+              </div>
+              <div class="flex items-center space-x-3">
+                <span :class="[
+                  'text-sm font-medium transition-colors',
+                  generationMode === 'prompt' ? 'text-white' : 'text-gray-400'
+                ]">
+                  文字描述
+                </span>
+                <button
+                  @click="switchGenerationMode(generationMode === 'prompt' ? 'pose' : 'prompt')"
+                  :class="[
+                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2',
+                    generationMode === 'pose' ? 'bg-primary-600' : 'bg-gray-600'
+                  ]"
+                >
+                  <span
+                    :class="[
+                      'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                      generationMode === 'pose' ? 'translate-x-5' : 'translate-x-0'
+                    ]"
+                  />
+                </button>
+                <span :class="[
+                  'text-sm font-medium transition-colors',
+                  generationMode === 'pose' ? 'text-white' : 'text-gray-400'
+                ]">
+                  姿势参考
+                </span>
+              </div>
+            </div>
           </div>
 
           <!-- Model Selection -->
@@ -364,8 +455,8 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Prompt Templates -->
-          <div class="mb-8">
+          <!-- Prompt Templates (only show in prompt mode) -->
+          <div v-if="generationMode === 'prompt'" class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">Prompt模板 <span class="text-red-400">*</span></h2>
             
             <div class="grid grid-cols-2 gap-3 mb-4">
@@ -397,9 +488,9 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Reference Pose Selection -->
-          <div class="mb-8">
-            <h2 class="text-lg font-semibold text-white mb-4">参考姿势 <span class="text-gray-500">(可选)</span></h2>
+          <!-- Reference Pose Selection (only show in pose mode) -->
+          <div v-if="generationMode === 'pose'" class="mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">参考姿势 <span class="text-red-400">*</span></h2>
             
             <div class="grid grid-cols-4 gap-3 mb-6">
               <div
@@ -559,16 +650,25 @@ onMounted(() => {
           <!-- Generate Button -->
           <button
             @click="generatePoseImages"
-:disabled="(!selectedModel && !uploadedModel) || !customPrompt.trim() || isGenerating"
+            :disabled="
+              (!selectedModel && !uploadedModel) || 
+              isGenerating ||
+              (generationMode === 'prompt' && !customPrompt.trim()) ||
+              (generationMode === 'pose' && !selectedPose)
+            "
             class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
           >
             <span v-if="isGenerating">生成中...</span>
-            <span v-else>生成 {{ generationCount }} 张姿势图</span>
+            <span v-else>
+              {{ generationMode === 'prompt' ? '用文字生成' : '用姿势生成' }} {{ generationCount }} 张图片
+            </span>
           </button>
 
           <div class="mt-4 text-center">
             <p class="text-gray-500 text-sm">预计生成时间：2-3分钟</p>
-            <p class="text-gray-500 text-xs">必选：选择模特、Prompt | 可选：参考姿势</p>
+            <p class="text-gray-500 text-xs">
+              必选：选择模特 + {{ generationMode === 'prompt' ? '文字描述' : '参考姿势' }}
+            </p>
           </div>
         </div>
       </div>
