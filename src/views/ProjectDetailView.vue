@@ -1792,7 +1792,7 @@ onMounted(() => {
                 @click="generateQueueItems"
                 class="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white py-2 px-4 rounded-lg font-medium transition-all"
               >
-                生成全部
+                生成 {{ generationQueue.reduce((sum, item) => sum + item.count, 0) }} 张图片（消耗{{ generationQueue.reduce((sum, item) => sum + item.count, 0) }}积分）
               </button>
             </div>
             
@@ -1809,7 +1809,7 @@ onMounted(() => {
               class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-4 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
             >
               <span v-if="isGenerating">生成中...</span>
-              <span v-else>生成 {{ generationCount }} 张模特图</span>
+              <span v-else>生成 {{ generationCount }} 张图片（消耗{{ generationCount }}积分）</span>
             </button>
 
             <div class="mt-4 text-center">
@@ -1925,13 +1925,13 @@ onMounted(() => {
               
               <div class="bg-gray-800 rounded-lg p-4">
                 <div class="text-center text-xs text-gray-400 mb-3">
-                  总计：{{ generationQueue.reduce((sum, item) => sum + item.count, 0) }} 张图片将被生成
+                  总计：{{ generationQueue.reduce((sum, item) => sum + item.count, 0) }} 张图片将被生成（消耗{{ generationQueue.reduce((sum, item) => sum + item.count, 0) }}积分）
                 </div>
                 <button
                   @click="generateQueueItems"
                   class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white py-3 rounded-lg font-semibold transition-all"
                 >
-                  开始批量生成
+                  生成 {{ generationQueue.reduce((sum, item) => sum + item.count, 0) }} 张图片（消耗{{ generationQueue.reduce((sum, item) => sum + item.count, 0) }}积分）
                 </button>
               </div>
             </div>
@@ -2296,7 +2296,7 @@ onMounted(() => {
             
             <div class="text-center">
               <div class="text-lg text-gray-200 font-medium">
-                将生成 {{ selectedCombinations.filter(c => c.selected).length * generationCount }} 张图片
+                将生成 {{ selectedCombinations.filter(c => c.selected).length * generationCount }} 张图片（消耗{{ selectedCombinations.filter(c => c.selected).length * generationCount }}积分）
               </div>
               <div class="text-sm text-gray-500 mt-1">
                 {{ selectedCombinations.filter(c => c.selected).length }} 个搭配 × {{ generationCount }} 张/搭配
@@ -2444,7 +2444,7 @@ onMounted(() => {
           
           <div class="text-center">
             <div class="text-lg text-gray-300 font-medium">
-              {{ editingResults.length > 1 ? `将重新生成 ${editingResults.length} 张图片` : '将重新生成 1 张图片' }}
+              {{ editingResults.length > 1 ? `将重新生成 ${editingResults.length} 张图片（消耗${editingResults.length}积分）` : '将重新生成 1 张图片（消耗1积分）' }}
             </div>
             <div class="text-xs text-gray-500 mt-1">
               预计时间：{{ editingResults.length * 0.5 }} 分钟

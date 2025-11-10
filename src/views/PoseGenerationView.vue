@@ -660,7 +660,7 @@ onMounted(() => {
           >
             <span v-if="isGenerating">生成中...</span>
             <span v-else>
-              {{ generationMode === 'prompt' ? '用文字生成' : '用姿势生成' }} {{ generationCount }} 张图片
+              生成 {{ generationCount }} 张图片（消耗{{ generationCount }}积分）
             </span>
           </button>
 

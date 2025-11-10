@@ -198,7 +198,7 @@ onMounted(() => {
             class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 disabled:from-gray-700 disabled:to-gray-700 text-white py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
           >
             <span v-if="isGenerating">处理中...</span>
-            <span v-else>开始放大</span>
+            <span v-else>生成 {{ getAllSelectedImages().length }} 张图片（消耗{{ getAllSelectedImages().length }}积分）</span>
           </button>
 
           <div class="mt-4 text-center">
@@ -388,7 +388,7 @@ onMounted(() => {
             完成选择
           </button>
           <div class="text-sm text-gray-400">
-            {{ selectedImages.length > 0 ? `将处理 ${selectedImages.length} 张图片` : '点击图片进行选择' }}
+            {{ getAllSelectedImages().length > 0 ? `将生成 ${getAllSelectedImages().length} 张图片（消耗${getAllSelectedImages().length}积分）` : '点击图片进行选择' }}
           </div>
         </div>
       </div>
