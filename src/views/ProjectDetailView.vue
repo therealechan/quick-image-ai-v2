@@ -1287,11 +1287,6 @@ onMounted(() => {
               <p class="text-green-400 text-sm text-center">模特图上传成功</p>
             </div>
             
-            <div v-else-if="selectedModels.length > 0" class="mt-3 text-center">
-              <span class="text-primary-400 text-sm">
-                已选择: {{ batchMode ? `${selectedModels.length} 位模特` : selectedModels[0]?.name }}
-              </span>
-            </div>
           </div>
 
           <!-- Top Clothing Selection -->
@@ -1898,7 +1893,7 @@ onMounted(() => {
                       </div>
                       <div class="text-xs text-gray-400 space-y-0.5">
                         <p>{{ item.model.name }} • {{ item.top.name }} • {{ item.bottom.name }}</p>
-                        <p v-if="item.accessories.length > 0">配饰: {{ item.accessories.map(acc => acc.name).join(', ') }}</p>
+                        <p v-if="item.accessories && item.accessories.length > 0">配饰: {{ item.accessories.map(acc => acc.name).join(', ') }}</p>
                         <p v-if="item.background">背景: {{ item.background.name }}</p>
                         <p v-if="item.aspectRatio">比例: {{ item.aspectRatio.name }}</p>
                         <p class="truncate">{{ item.prompt }}</p>
