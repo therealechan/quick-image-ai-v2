@@ -1,21 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { cn } from '@/lib/utils'
-
-export interface GalleryImage {
-  id: string
-  url: string
-  title: string
-  description?: string
-  category: string
-  createdAt: Date
-  size: {
-    width: number
-    height: number
-  }
-  fileSize?: string
-  tags?: string[]
-}
+import type { GalleryImage } from '@/types/album'
 
 const props = defineProps<{
   images: GalleryImage[]
@@ -23,6 +9,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   imageClick: [image: GalleryImage]
+  moveToAlbum: [imageIds: string[]]
 }>()
 
 const galleryRef = ref<HTMLElement>()
@@ -129,6 +116,15 @@ onMounted(() => {
         </div>
         
         <div class="flex items-center space-x-2">
+          <button 
+            @click="emit('moveToAlbum', Array.from(selectedImages))"
+            class="p-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-colors" 
+            title="移动到相册"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+          </button>
           <button class="p-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors" title="下载选中">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>

@@ -107,7 +107,7 @@ class Line {
 
   update(): void {
     let e = this.spring;
-    let t = this.nodes[0];
+    const t = this.nodes[0];
 
     if (!t) return;
 
@@ -172,7 +172,7 @@ class Line {
 
 let ctx: CanvasRenderingContext2D & { running?: boolean; frame?: number };
 let f: Wave;
-let pos = { x: 0, y: 0 };
+const pos = { x: 0, y: 0 };
 let lines: Line[] = [];
 
 const E = {

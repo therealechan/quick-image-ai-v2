@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils'
-import { Grid3X3, Calendar, BarChart3, Archive } from 'lucide-vue-next'
-
-type GroupByType = 'all' | 'day' | 'month' | 'year'
+import { Grid3X3, Calendar, BarChart3, Archive, FolderOpen, Settings } from 'lucide-vue-next'
+import type { GroupByType } from '@/types/album'
 
 interface GroupOption {
   value: GroupByType
   label: string
-  icon: any
+  icon: unknown
   description: string
 }
 
@@ -17,6 +16,7 @@ defineProps<{
 
 const emit = defineEmits<{
   change: [value: GroupByType]
+  manageAlbums: []
 }>()
 
 const groupOptions: GroupOption[] = [
@@ -25,6 +25,12 @@ const groupOptions: GroupOption[] = [
     label: '全部图片',
     icon: Grid3X3,
     description: '查看所有图片'
+  },
+  {
+    value: 'album',
+    label: '按相册分组',
+    icon: FolderOpen,
+    description: '按相册分组查看'
   },
   {
     value: 'day',
@@ -54,32 +60,43 @@ const handleGroupChange = (value: GroupByType) => {
 <template>
   <div class="time-group-selector">
     <!-- Desktop View -->
-    <div class="hidden md:flex items-center space-x-1 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-1">
+    <div class="hidden md:flex items-center justify-between gap-4">
+      <div class="flex items-center space-x-1 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-1">
+        <button
+          v-for="option in groupOptions"
+          :key="option.value"
+          :class="cn(
+            'relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 group',
+            'text-sm font-medium',
+            currentGroupBy === option.value
+              ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+              : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+          )"
+          @click="handleGroupChange(option.value)"
+        >
+          <component :is="option.icon" class="w-4 h-4" />
+          <span>{{ option.label }}</span>
+          
+          <!-- Active indicator -->
+          <div 
+            v-if="currentGroupBy === option.value"
+            class="absolute inset-0 bg-primary-500 rounded-lg opacity-10"
+          />
+        </button>
+      </div>
+      
+      <!-- Manage Albums Button -->
       <button
-        v-for="option in groupOptions"
-        :key="option.value"
-        :class="cn(
-          'relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 group',
-          'text-sm font-medium',
-          currentGroupBy === option.value
-            ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-            : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-        )"
-        @click="handleGroupChange(option.value)"
+        @click="emit('manageAlbums')"
+        class="flex items-center space-x-2 px-4 py-2 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-200 text-sm font-medium"
       >
-        <component :is="option.icon" class="w-4 h-4" />
-        <span>{{ option.label }}</span>
-        
-        <!-- Active indicator -->
-        <div 
-          v-if="currentGroupBy === option.value"
-          class="absolute inset-0 bg-primary-500 rounded-lg opacity-10"
-        />
+        <Settings class="w-4 h-4" />
+        <span>管理相册</span>
       </button>
     </div>
 
     <!-- Mobile View -->
-    <div class="md:hidden">
+    <div class="md:hidden space-y-3">
       <div class="relative">
         <select 
           :value="currentGroupBy"
@@ -103,6 +120,15 @@ const handleGroupChange = (value: GroupByType) => {
           </svg>
         </div>
       </div>
+      
+      <!-- Mobile Manage Albums Button -->
+      <button
+        @click="emit('manageAlbums')"
+        class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-200 text-sm font-medium"
+      >
+        <Settings class="w-4 h-4" />
+        <span>管理相册</span>
+      </button>
     </div>
 
     <!-- Info Panel -->
