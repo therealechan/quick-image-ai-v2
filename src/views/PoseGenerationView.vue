@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
 import GenerationHistory from '../components/GenerationHistory.vue'
-import { Upload, Download, Camera } from 'lucide-vue-next'
+import { Download, Camera, Check, Edit2 } from 'lucide-vue-next'
 import type { PoseHistoryItem } from '../types/history'
 
 const isMobileMenuOpen = ref(false)
@@ -21,6 +21,12 @@ const isGenerating = ref(false)
 const generationCount = ref(3)
 const selectedPromptTemplate = ref<any>(null)
 const customPrompt = ref('')
+
+// Batch operations
+const selectedResults = ref<Set<string>>(new Set())
+const showEditModal = ref(false)
+const editingResults = ref<any[]>([])
+const editPrompt = ref('')
 
 // Aspect ratio selection
 const selectedAspectRatio = ref<any>(null)
@@ -198,6 +204,88 @@ const saveToHistory = (results: any[]) => {
   }
   
   historyRef.value.addHistoryItem(historyItem)
+}
+
+// Batch operations
+const toggleResultSelection = (resultId: string) => {
+  if (selectedResults.value.has(resultId)) {
+    selectedResults.value.delete(resultId)
+  } else {
+    selectedResults.value.add(resultId)
+  }
+}
+
+const selectAllResults = () => {
+  generatedResults.value.forEach(result => {
+    selectedResults.value.add(result.id)
+  })
+}
+
+const deselectAllResults = () => {
+  selectedResults.value.clear()
+}
+
+const downloadSingleResult = (result: any) => {
+  // Mock download functionality
+  console.log('Downloading single pose result:', result.url)
+  alert(`下载图片 ${result.id} 功能开发中...`)
+}
+
+const downloadSelectedResults = () => {
+  if (selectedResults.value.size === 0) {
+    alert('请先选择要下载的图片')
+    return
+  }
+  
+  const selectedResultsList = generatedResults.value.filter(result => 
+    selectedResults.value.has(result.id)
+  )
+  const imageNames = selectedResultsList.map(result => `姿势图-${result.id}`).join(', ')
+  
+  alert(`开始批量下载 ${selectedResults.value.size} 张姿势图:\n${imageNames}\n\n批量下载功能开发中...`)
+  
+  // In real implementation, this would:
+  // 1. Create a zip file with all selected images
+  // 2. Download the zip file
+  // 3. Show progress indicator
+}
+
+const editSingleResult = (result: any) => {
+  editingResults.value = [result]
+  editPrompt.value = result.config?.prompt || customPrompt.value
+  showEditModal.value = true
+}
+
+const editSelectedResults = () => {
+  const selectedResultsList = generatedResults.value.filter(result => 
+    selectedResults.value.has(result.id)
+  )
+  
+  if (selectedResultsList.length === 0) {
+    alert('请先选择要编辑的结果')
+    return
+  }
+  
+  editingResults.value = selectedResultsList
+  editPrompt.value = selectedResultsList[0]?.config?.prompt || customPrompt.value
+  showEditModal.value = true
+}
+
+const saveEditChanges = () => {
+  // Mock edit functionality
+  console.log('Saving edit changes for', editingResults.value.length, 'results')
+  console.log('New prompt:', editPrompt.value)
+  
+  // In real implementation, this would regenerate the selected results with new prompt
+  editingResults.value.forEach(result => {
+    result.config = { ...result.config, prompt: editPrompt.value }
+    result.isEdited = true
+  })
+  
+  alert(`已保存 ${editingResults.value.length} 个结果的编辑更改`)
+  showEditModal.value = false
+  editingResults.value = []
+  selectedResults.value.clear()
 }
 
 onMounted(() => {
@@ -501,7 +589,11 @@ onMounted(() => {
             <div
               v-for="result in generatedResults"
               :key="result.id"
-              class="relative group"
+              @click="toggleResultSelection(result.id)"
+              :class="[
+                'relative group cursor-pointer transition-all',
+                selectedResults.has(result.id) ? 'ring-2 ring-primary-500 rounded-lg' : ''
+              ]"
             >
               <img
                 :src="result.url"
@@ -521,10 +613,41 @@ onMounted(() => {
                 ]"
               />
               <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg">
-                <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button class="p-2 bg-white rounded-full text-gray-900 hover:bg-gray-100">
-                    <Download class="h-4 w-4" />
+                <!-- Selection Checkbox -->
+                <div class="absolute top-2 right-2">
+                  <div 
+                    :class="[
+                      'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
+                      selectedResults.has(result.id) 
+                        ? 'bg-primary-500 border-primary-500' 
+                        : 'bg-gray-800 border-gray-600 opacity-60 group-hover:opacity-100'
+                    ]"
+                  >
+                    <Check v-if="selectedResults.has(result.id)" class="w-3 h-3 text-white" />
+                  </div>
+                </div>
+                
+                <!-- Action buttons -->
+                <div class="absolute bottom-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    @click.stop="editSingleResult(result)"
+                    class="p-2 bg-green-500 rounded-full text-white hover:bg-green-400 transition-colors"
+                  >
+                    <Edit2 class="h-3 w-3" />
                   </button>
+                  <button 
+                    @click.stop="downloadSingleResult(result)"
+                    class="p-2 bg-blue-500 rounded-full text-white hover:bg-blue-400 transition-colors"
+                  >
+                    <Download class="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Edited indicator -->
+              <div v-if="result.isEdited" class="absolute top-2 left-2">
+                <div class="bg-green-500 text-white text-xs px-2 py-1 rounded">
+                  已编辑
                 </div>
               </div>
             </div>
@@ -615,6 +738,137 @@ onMounted(() => {
             class="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
           >
             取消
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fixed Floating Action Toolbar (shown when results are selected) -->
+    <div 
+      v-if="selectedResults.size > 0" 
+      class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-gray-800 border border-primary-500 rounded-lg shadow-lg p-4 max-w-md w-full mx-4"
+    >
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-white text-sm font-medium">
+          已选择 {{ selectedResults.size }} 张姿势图
+        </span>
+        <div class="flex space-x-2">
+          <button
+            @click="selectAllResults"
+            class="text-xs text-primary-400 hover:text-primary-300 transition-colors"
+          >
+            全选
+          </button>
+          <button
+            @click="deselectAllResults"
+            class="text-xs text-gray-400 hover:text-gray-300 transition-colors"
+          >
+            取消选择
+          </button>
+        </div>
+      </div>
+      
+      <div class="flex space-x-2">
+        <button
+          @click="downloadSelectedResults"
+          class="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded transition-colors"
+        >
+          <Download class="h-3 w-3" />
+          <span>批量下载</span>
+        </button>
+        <button
+          @click="editSelectedResults"
+          class="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs rounded transition-colors"
+        >
+          <Edit2 class="h-3 w-3" />
+          <span>批量编辑</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div 
+      v-if="showEditModal" 
+      class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
+      @click.self="showEditModal = false"
+    >
+      <div class="bg-gray-900 rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[85vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h3 class="text-lg font-bold text-white">编辑 Prompt</h3>
+            <p class="text-gray-400 text-sm mt-1">
+              {{ editingResults.length === 1 ? '编辑单个姿势图' : `批量编辑 ${editingResults.length} 个姿势图` }}
+            </p>
+          </div>
+          <button
+            @click="showEditModal = false"
+            class="text-gray-400 hover:text-white p-2"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Edit Form -->
+        <div class="space-y-6">
+          <!-- Preview of editing results -->
+          <div v-if="editingResults.length > 0">
+            <label class="block text-sm font-medium text-gray-400 mb-3">编辑的图片预览</label>
+            <div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 max-h-32 overflow-y-auto">
+              <div
+                v-for="result in editingResults"
+                :key="result.id"
+                class="relative aspect-square"
+              >
+                <img
+                  :src="result.url"
+                  :alt="`Editing result ${result.id}`"
+                  class="w-full h-full object-cover rounded-lg border border-gray-600"
+                />
+                <div class="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center">
+                  <span class="text-white text-xs font-medium">{{ result.id }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prompt editing -->
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2">Prompt</label>
+            <textarea
+              v-model="editPrompt"
+              placeholder="输入新的prompt描述..."
+              class="w-full px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none text-sm"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <!-- Current settings preview -->
+          <div class="bg-gray-800 rounded-lg p-4">
+            <h4 class="text-sm font-medium text-gray-300 mb-2">当前设置</h4>
+            <div class="text-xs text-gray-400 space-y-1">
+              <p>模特：{{ selectedModel?.name || '上传的模特' }}</p>
+              <p v-if="selectedPose">参考姿势：{{ selectedPose.name }}</p>
+              <p v-if="selectedAspectRatio">图片比例：{{ selectedAspectRatio.name }}</p>
+              <p>生成数量：{{ generationCount }} 张</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex space-x-3 pt-6 border-t border-gray-700 mt-6">
+          <button
+            @click="showEditModal = false"
+            class="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            取消
+          </button>
+          <button
+            @click="saveEditChanges"
+            class="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+          >
+            保存更改
           </button>
         </div>
       </div>
