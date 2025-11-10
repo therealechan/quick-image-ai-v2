@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Clock, Star, Trash2, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Clock, Star, Trash2, RotateCcw, ChevronLeft, ChevronRight, Eye, Download, ZoomIn, X } from 'lucide-vue-next'
 
 interface HistoryItem {
   id: string
@@ -29,6 +29,11 @@ const historyItems = ref<HistoryItem[]>([])
 const isCollapsed = ref(props.isCollapsed ?? true)
 const searchQuery = ref('')
 const filterType = ref<'all' | 'favorites' | 'recent'>('all')
+
+// Results modal state
+const showResultsModal = ref(false)
+const selectedHistoryItem = ref<HistoryItem | null>(null)
+const currentImageIndex = ref(0)
 
 // Mock history data
 const mockHistoryData: HistoryItem[] = [
@@ -165,6 +170,43 @@ const deleteHistoryItem = (itemId: string) => {
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value
   emit('toggle-collapse')
+}
+
+const viewResults = (item: HistoryItem) => {
+  if (item.results.length === 0) {
+    alert('该记录暂无生成结果')
+    return
+  }
+  selectedHistoryItem.value = item
+  currentImageIndex.value = 0
+  showResultsModal.value = true
+}
+
+const closeResultsModal = () => {
+  showResultsModal.value = false
+  selectedHistoryItem.value = null
+  currentImageIndex.value = 0
+}
+
+const nextImage = () => {
+  if (selectedHistoryItem.value && currentImageIndex.value < selectedHistoryItem.value.results.length - 1) {
+    currentImageIndex.value++
+  }
+}
+
+const prevImage = () => {
+  if (currentImageIndex.value > 0) {
+    currentImageIndex.value--
+  }
+}
+
+const downloadImage = (url: string, index: number) => {
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `generated-image-${selectedHistoryItem.value?.id}-${index + 1}.jpg`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 const onImageError = (event: Event) => {
@@ -337,19 +379,31 @@ onMounted(() => {
             </div>
 
             <!-- Details -->
-            <div class="space-y-1">
+            <div class="space-y-2">
               <p class="text-xs text-gray-300 line-clamp-2">{{ item.prompt }}</p>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-500">
-                  {{ item.models.length }}个模特 • {{ item.tops.length + item.bottoms.length }}件服装
-                  {{ item.results.length > 0 ? ` • ${item.results.length}张结果` : '' }}
-                </span>
+              
+              <!-- Info Row -->
+              <div class="text-xs text-gray-500">
+                {{ item.models.length }}个模特 • {{ item.tops.length + item.bottoms.length }}件服装
+                {{ item.results.length > 0 ? ` • ${item.results.length}张结果` : '' }}
+              </div>
+              
+              <!-- Actions Row -->
+              <div class="flex items-center justify-end space-x-1 pt-1">
+                <button
+                  v-if="item.results.length > 0"
+                  @click="viewResults(item)"
+                  class="p-1.5 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors"
+                  title="查看生成结果"
+                >
+                  <Eye class="h-3.5 w-3.5" />
+                </button>
                 <button
                   @click="useHistoryItem(item)"
-                  class="flex items-center space-x-1 px-2 py-1 bg-primary-500/20 text-primary-400 text-xs rounded hover:bg-primary-500/30 transition-colors"
+                  class="p-1.5 bg-primary-500/20 text-primary-400 rounded hover:bg-primary-500/30 transition-colors"
+                  title="重用此配置"
                 >
-                  <RotateCcw class="h-3 w-3" />
-                  <span>重用</span>
+                  <RotateCcw class="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -436,6 +490,118 @@ onMounted(() => {
       <div class="text-xs text-gray-600 text-center mt-auto">
         <div class="w-4 h-0.5 bg-gray-600 mx-auto mb-1"></div>
         <div class="w-3 h-0.5 bg-gray-600 mx-auto"></div>
+      </div>
+    </div>
+
+    <!-- Results Viewing Modal -->
+    <div 
+      v-if="showResultsModal && selectedHistoryItem" 
+      class="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50"
+      @click.self="closeResultsModal"
+    >
+      <div class="bg-gray-900 rounded-lg max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-800">
+          <div class="flex items-center space-x-3">
+            <Eye class="h-5 w-5 text-blue-400" />
+            <div>
+              <h3 class="text-lg font-semibold text-white">生成结果</h3>
+              <p class="text-sm text-gray-400">{{ formatTime(selectedHistoryItem.timestamp) }} • {{ selectedHistoryItem.results.length }}张图片</p>
+            </div>
+          </div>
+          <button
+            @click="closeResultsModal"
+            class="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <X class="h-5 w-5" />
+          </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="flex-1 overflow-hidden flex">
+          <!-- Main Image Display -->
+          <div class="flex-1 flex items-center justify-center p-6 bg-gray-950">
+            <div class="relative max-w-full max-h-full">
+              <img
+                :src="selectedHistoryItem.results[currentImageIndex]?.url"
+                :alt="`Generated result ${currentImageIndex + 1}`"
+                class="max-w-full max-h-full object-contain rounded-lg"
+                @error="onImageError"
+              />
+              
+              <!-- Navigation Arrows -->
+              <button
+                v-if="selectedHistoryItem.results.length > 1 && currentImageIndex > 0"
+                @click="prevImage"
+                class="absolute left-2 top-1/2 transform -translate-y-1/2 p-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full transition-all"
+              >
+                <ChevronLeft class="h-5 w-5" />
+              </button>
+              
+              <button
+                v-if="selectedHistoryItem.results.length > 1 && currentImageIndex < selectedHistoryItem.results.length - 1"
+                @click="nextImage"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full transition-all"
+              >
+                <ChevronRight class="h-5 w-5" />
+              </button>
+
+              <!-- Image Counter -->
+              <div class="absolute bottom-4 left-4 px-3 py-1 bg-black bg-opacity-70 text-white text-sm rounded-full">
+                {{ currentImageIndex + 1 }} / {{ selectedHistoryItem.results.length }}
+              </div>
+
+              <!-- Download Button -->
+              <button
+                @click="downloadImage(selectedHistoryItem.results[currentImageIndex]?.url, currentImageIndex)"
+                class="absolute bottom-4 right-4 p-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full transition-colors"
+                :title="'下载图片'"
+              >
+                <Download class="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Side Panel - Image Thumbnails -->
+          <div class="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
+            <!-- Generation Details -->
+            <div class="p-4 border-b border-gray-700">
+              <h4 class="text-sm font-semibold text-white mb-2">生成信息</h4>
+              <div class="space-y-2 text-xs text-gray-300">
+                <div><span class="text-gray-500">模式:</span> {{ selectedHistoryItem.batchMode ? '批量生成' : '单搭配生成' }}</div>
+                <div><span class="text-gray-500">模特:</span> {{ selectedHistoryItem.models.length }}个</div>
+                <div><span class="text-gray-500">服装:</span> {{ selectedHistoryItem.tops.length + selectedHistoryItem.bottoms.length }}件</div>
+                <div><span class="text-gray-500">Prompt:</span></div>
+                <p class="text-gray-300 text-xs leading-relaxed bg-gray-700 p-2 rounded">{{ selectedHistoryItem.prompt }}</p>
+              </div>
+            </div>
+
+            <!-- Thumbnails Grid -->
+            <div class="flex-1 overflow-y-auto p-4">
+              <h4 class="text-sm font-semibold text-white mb-3">所有结果 ({{ selectedHistoryItem.results.length }})</h4>
+              <div class="grid grid-cols-2 gap-2">
+                <div
+                  v-for="(result, index) in selectedHistoryItem.results"
+                  :key="result.id"
+                  @click="currentImageIndex = index"
+                  :class="[
+                    'aspect-square rounded-lg overflow-hidden cursor-pointer transition-all border-2',
+                    currentImageIndex === index 
+                      ? 'border-primary-500 ring-1 ring-primary-500' 
+                      : 'border-gray-600 hover:border-gray-500'
+                  ]"
+                >
+                  <img
+                    :src="result.url"
+                    :alt="`Result ${index + 1}`"
+                    class="w-full h-full object-cover"
+                    @error="onImageError"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
