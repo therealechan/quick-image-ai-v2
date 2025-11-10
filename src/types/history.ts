@@ -1,3 +1,14 @@
+// 生成状态枚举
+export enum GenerationStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing', 
+  COMPLETED = 'completed',
+  FAILED = 'failed'
+}
+
+// 生成状态类型
+export type GenerationStatusType = 'pending' | 'processing' | 'completed' | 'failed'
+
 // 基础历史记录接口
 export interface BaseHistoryItem {
   id: string
@@ -8,6 +19,7 @@ export interface BaseHistoryItem {
     url: string
   }>
   isFavorite: boolean
+  status: GenerationStatusType
 }
 
 // 服装生成历史记录（原有的）

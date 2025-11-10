@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Clock, Star, Trash2, RotateCcw, ChevronLeft, ChevronRight, Eye, Download, ZoomIn, X } from 'lucide-vue-next'
-import type { HistoryItem, ClothingHistoryItem, PoseHistoryItem, HistoryTypeString } from '../types/history'
+import { Clock, Star, Trash2, RotateCcw, ChevronLeft, ChevronRight, Eye, Download, X, Loader2, Check } from 'lucide-vue-next'
+import type { HistoryItem, ClothingHistoryItem, PoseHistoryItem, HistoryTypeString, GenerationStatusType } from '../types/history'
 
 const props = defineProps<{
   isCollapsed?: boolean
@@ -43,7 +43,8 @@ const mockClothingHistoryData: ClothingHistoryItem[] = [
       { id: 'r2', url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=300&fit=crop' }
     ],
     isFavorite: true,
-    batchMode: false
+    batchMode: false,
+    status: 'completed'
   },
   {
     id: '2',
@@ -71,7 +72,8 @@ const mockClothingHistoryData: ClothingHistoryItem[] = [
       { id: 'r6', url: 'https://images.unsplash.com/photo-1594736797933-d0d3023055e0?w=200&h=300&fit=crop' }
     ],
     isFavorite: false,
-    batchMode: true
+    batchMode: true,
+    status: 'processing'
   },
   {
     id: '3',
@@ -83,11 +85,10 @@ const mockClothingHistoryData: ClothingHistoryItem[] = [
     accessories: [{ id: '2', name: '手提包', thumbnail: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=100&h=100&fit=crop' }],
     background: { id: '3', name: '办公室背景' },
     prompt: '商务女性，专业形象，正装搭配',
-    results: [
-      { id: 'r7', url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=300&fit=crop' }
-    ],
+    results: [],
     isFavorite: true,
-    batchMode: false
+    batchMode: false,
+    status: 'failed'
   }
 ]
 
@@ -110,7 +111,8 @@ const mockPoseHistoryData: PoseHistoryItem[] = [
       { id: 'pr2', url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=300&fit=crop' },
       { id: 'pr3', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=300&fit=crop' }
     ],
-    isFavorite: false
+    isFavorite: false,
+    status: 'completed'
   },
   {
     id: 'p2',
@@ -124,11 +126,9 @@ const mockPoseHistoryData: PoseHistoryItem[] = [
     prompt: '运动模特，活力四射，健康身材，运动服装，动感姿势',
     generationCount: 4,
     aspectRatio: { id: '1:1', name: '1:1', width: 1, height: 1 },
-    results: [
-      { id: 'pr4', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=300&fit=crop' },
-      { id: 'pr5', url: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=200&h=300&fit=crop' }
-    ],
-    isFavorite: true
+    results: [],
+    isFavorite: true,
+    status: 'pending'
   }
 ]
 
@@ -188,6 +188,36 @@ const formatTime = (date: Date) => {
   if (diffDays < 7) return `${diffDays}天前`
   
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+}
+
+const getStatusColor = (status: GenerationStatusType) => {
+  switch (status) {
+    case 'completed': return 'bg-green-500/20 text-green-400'
+    case 'processing': return 'bg-yellow-500/20 text-yellow-400'
+    case 'failed': return 'bg-red-500/20 text-red-400'
+    case 'pending': return 'bg-gray-500/20 text-gray-400'
+    default: return 'bg-gray-500/20 text-gray-400'
+  }
+}
+
+const getStatusText = (status: GenerationStatusType) => {
+  switch (status) {
+    case 'completed': return '已完成'
+    case 'processing': return '生成中'
+    case 'failed': return '生成失败'
+    case 'pending': return '待生成'
+    default: return '未知'
+  }
+}
+
+const getStatusIcon = (status: GenerationStatusType) => {
+  switch (status) {
+    case 'completed': return Check
+    case 'processing': return Loader2
+    case 'failed': return X
+    case 'pending': return Clock
+    default: return Clock
+  }
 }
 
 const useHistoryItem = (item: HistoryItem) => {
@@ -300,9 +330,10 @@ const loadFromLocalStorage = () => {
   if (stored) {
     try {
       const parsed = JSON.parse(stored)
-      historyItems.value = parsed.map((item: any) => ({
+      historyItems.value = parsed.map((item: HistoryItem) => ({
         ...item,
-        timestamp: new Date(item.timestamp)
+        timestamp: new Date(item.timestamp),
+        status: item.status || 'completed' // 为旧数据提供默认状态
       }))
     } catch (error) {
       console.error('Failed to load history from localStorage:', error)
@@ -319,7 +350,8 @@ const addHistoryItem = (item: any) => {
     ...item,
     id: Date.now().toString(),
     timestamp: new Date(),
-    isFavorite: false
+    isFavorite: false,
+    status: item.status || 'pending'
   }
   historyItems.value.unshift(newItem)
   
@@ -431,35 +463,50 @@ onMounted(() => {
               <!-- For clothing generation -->
               <template v-if="item.type === 'clothing'">
                 <!-- Models -->
-                <div v-for="model in (item as ClothingHistoryItem).models.slice(0, 1)" :key="model.id" class="aspect-square rounded overflow-hidden">
+                <div v-for="model in (item as ClothingHistoryItem).models.slice(0, 1)" :key="model.id" class="aspect-square rounded overflow-hidden relative">
                   <img :src="model.thumbnail" :alt="model.name" class="w-full h-full object-cover" />
+                  <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 truncate">
+                    {{ model.name }}
+                  </div>
                 </div>
                 <!-- Clothing -->
-                <div v-for="top in (item as ClothingHistoryItem).tops.slice(0, 1)" :key="top.id" class="aspect-square rounded overflow-hidden">
+                <div v-for="top in (item as ClothingHistoryItem).tops.slice(0, 1)" :key="top.id" class="aspect-square rounded overflow-hidden relative">
                   <img :src="top.thumbnail" :alt="top.name" class="w-full h-full object-cover" />
+                  <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 truncate">
+                    {{ top.name }}
+                  </div>
                 </div>
-                <div v-for="bottom in (item as ClothingHistoryItem).bottoms.slice(0, 1)" :key="bottom.id" class="aspect-square rounded overflow-hidden">
+                <div v-for="bottom in (item as ClothingHistoryItem).bottoms.slice(0, 1)" :key="bottom.id" class="aspect-square rounded overflow-hidden relative">
                   <img :src="bottom.thumbnail" :alt="bottom.name" class="w-full h-full object-cover" />
+                  <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 truncate">
+                    {{ bottom.name }}
+                  </div>
                 </div>
               </template>
               
               <!-- For pose generation -->
               <template v-else-if="item.type === 'pose'">
                 <!-- Model -->
-                <div v-if="(item as PoseHistoryItem).model || (item as PoseHistoryItem).uploadedModel" class="aspect-square rounded overflow-hidden">
+                <div v-if="(item as PoseHistoryItem).model || (item as PoseHistoryItem).uploadedModel" class="aspect-square rounded overflow-hidden relative">
                   <img 
                     :src="(item as PoseHistoryItem).model?.thumbnail || (item as PoseHistoryItem).uploadedModel" 
                     :alt="(item as PoseHistoryItem).model?.name || '上传模特'" 
                     class="w-full h-full object-cover" 
                   />
+                  <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 truncate">
+                    {{ (item as PoseHistoryItem).model?.name || '上传模特' }}
+                  </div>
                 </div>
                 <!-- Pose -->
-                <div v-if="(item as PoseHistoryItem).selectedPose" class="aspect-square rounded overflow-hidden">
+                <div v-if="(item as PoseHistoryItem).selectedPose" class="aspect-square rounded overflow-hidden relative">
                   <img 
                     :src="(item as PoseHistoryItem).selectedPose.thumbnail" 
                     :alt="(item as PoseHistoryItem).selectedPose.name" 
                     class="w-full h-full object-cover" 
                   />
+                  <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 truncate">
+                    {{ (item as PoseHistoryItem).selectedPose.name }}
+                  </div>
                 </div>
                 <!-- Aspect ratio indicator -->
                 <div v-if="(item as PoseHistoryItem).aspectRatio" class="aspect-square rounded overflow-hidden bg-gray-700 flex items-center justify-center">
@@ -491,22 +538,45 @@ onMounted(() => {
               </div>
               
               <!-- Actions Row -->
-              <div class="flex items-center justify-end space-x-1 pt-1">
-                <button
-                  v-if="item.results.length > 0"
-                  @click="viewResults(item)"
-                  class="p-1.5 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors"
-                  title="查看生成结果"
-                >
-                  <Eye class="h-3.5 w-3.5" />
-                </button>
-                <button
-                  @click="useHistoryItem(item)"
-                  class="p-1.5 bg-primary-500/20 text-primary-400 rounded hover:bg-primary-500/30 transition-colors"
-                  title="重用此配置"
-                >
-                  <RotateCcw class="h-3.5 w-3.5" />
-                </button>
+              <div class="flex items-center justify-between pt-1">
+                <!-- Status Indicator -->
+                <div class="flex items-center">
+                  <div 
+                    :class="[
+                      'px-2 py-1 rounded-full flex items-center space-x-1 status-indicator text-xs font-medium',
+                      getStatusColor(item.status || 'completed')
+                    ]"
+                    :title="getStatusText(item.status || 'completed')"
+                  >
+                    <component 
+                      :is="getStatusIcon(item.status || 'completed')" 
+                      :class="[
+                        'h-3 w-3',
+                        item.status === 'processing' ? 'animate-spin' : ''
+                      ]" 
+                    />
+                    <span>{{ getStatusText(item.status || 'completed') }}</span>
+                  </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-center space-x-1">
+                  <button
+                    v-if="item.results.length > 0"
+                    @click="viewResults(item)"
+                    class="p-1.5 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors"
+                    title="查看生成结果"
+                  >
+                    <Eye class="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    @click="useHistoryItem(item)"
+                    class="p-1.5 bg-primary-500/20 text-primary-400 rounded hover:bg-primary-500/30 transition-colors"
+                    title="重用此配置"
+                  >
+                    <RotateCcw class="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -749,5 +819,28 @@ onMounted(() => {
 
 .history-item-3 {
   opacity: 0.4;
+}
+
+/* Status indicator animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Status indicator hover effects */
+.status-indicator {
+  transition: all 0.2s ease-in-out;
+}
+
+.status-indicator:hover {
+  transform: scale(1.1);
 }
 </style>

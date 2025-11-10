@@ -251,7 +251,8 @@ const saveToHistory = (results: any[]) => {
     prompt: generationMode.value === 'prompt' ? customPrompt.value : '',
     generationCount: generationCount.value,
     aspectRatio: selectedAspectRatio.value,
-    results: results.map(r => ({ id: r.id, url: r.url }))
+    results: results.map(r => ({ id: r.id, url: r.url })),
+    status: 'completed'
   }
   
   historyRef.value.addHistoryItem(historyItem)
