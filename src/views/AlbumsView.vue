@@ -109,6 +109,10 @@ const handleSelectAlbum = (album: Album) => {
   // TODO: Navigate to gallery view filtered by this album
   console.log('Selected album:', album.name)
 }
+
+const handleViewAlbum = (album: Album) => {
+  router.push(`/albums/${album.id}`)
+}
 </script>
 
 <template>
@@ -147,6 +151,7 @@ const handleSelectAlbum = (album: Album) => {
             @edit-album="handleEditAlbum"
             @delete-album="handleDeleteAlbum"
             @select-album="handleSelectAlbum"
+            @view-album="handleViewAlbum"
           />
         </div>
       </div>

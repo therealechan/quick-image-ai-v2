@@ -115,16 +115,34 @@ export class AlbumService {
     if (!album) return false
 
     let updated = false
+    const oldAlbums = new Set<string>()
+    
     this.images.forEach(image => {
       if (imageIds.includes(image.id)) {
+        if (image.albumId) {
+          oldAlbums.add(image.albumId)
+        }
         image.albumId = albumId
         updated = true
       }
     })
 
     if (updated) {
+      // 更新目标相册
       this.updateAlbumImageCount(albumId)
+      this.updateAlbumCoverToLatest(albumId)
       album.updatedAt = new Date()
+      
+      // 更新原相册的数量和封面
+      oldAlbums.forEach(oldAlbumId => {
+        this.updateAlbumImageCount(oldAlbumId)
+        this.updateAlbumCoverToLatest(oldAlbumId)
+        const oldAlbum = this.getAlbumById(oldAlbumId)
+        if (oldAlbum) {
+          oldAlbum.updatedAt = new Date()
+        }
+      })
+      
       this.saveToStorage()
     }
 
@@ -146,6 +164,7 @@ export class AlbumService {
     if (updated) {
       affectedAlbums.forEach(albumId => {
         this.updateAlbumImageCount(albumId)
+        this.updateAlbumCoverToLatest(albumId)
         const album = this.getAlbumById(albumId)
         if (album) {
           album.updatedAt = new Date()
@@ -159,6 +178,20 @@ export class AlbumService {
 
   addImages(images: GalleryImage[]): void {
     this.images.push(...images)
+    
+    // 更新相册封面和数量
+    const albumsToUpdate = new Set<string>()
+    images.forEach(image => {
+      if (image.albumId) {
+        albumsToUpdate.add(image.albumId)
+      }
+    })
+    
+    albumsToUpdate.forEach(albumId => {
+      this.updateAlbumCoverToLatest(albumId)
+      this.updateAlbumImageCount(albumId)
+    })
+    
     this.saveToStorage()
   }
 
@@ -179,6 +212,7 @@ export class AlbumService {
     if (this.images.length !== initialLength) {
       affectedAlbums.forEach(albumId => {
         this.updateAlbumImageCount(albumId)
+        this.updateAlbumCoverToLatest(albumId)
         const album = this.getAlbumById(albumId)
         if (album) {
           album.updatedAt = new Date()
@@ -195,6 +229,23 @@ export class AlbumService {
     const album = this.getAlbumById(albumId)
     if (album) {
       album.imageCount = this.getImagesByAlbumId(albumId).length
+    }
+  }
+
+  private updateAlbumCoverToLatest(albumId: string): void {
+    const album = this.getAlbumById(albumId)
+    if (!album) return
+
+    const albumImages = this.getImagesByAlbumId(albumId)
+    if (albumImages.length > 0) {
+      // 按创建时间降序排序，取最新的图片作为封面
+      const latestImage = albumImages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]
+      if (latestImage) {
+        album.coverImage = latestImage.url
+      }
+    } else {
+      // 如果相册为空，清除封面
+      album.coverImage = undefined
     }
   }
 
@@ -221,8 +272,15 @@ export class AlbumService {
 
   initializeWithMockData(albums: Album[], images: GalleryImage[]): void {
     if (this.albums.length === 0 && this.images.length === 0) {
-      this.albums = albums
-      this.images = images
+      this.albums = [...albums]
+      this.images = [...images]
+      
+      // 更新每个相册的图片数量和封面
+      this.albums.forEach(album => {
+        this.updateAlbumImageCount(album.id)
+        this.updateAlbumCoverToLatest(album.id)
+      })
+      
       this.saveToStorage()
     }
   }

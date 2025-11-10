@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils'
-import { useRouter } from 'vue-router'
-import { Grid3X3, Calendar, BarChart3, Archive, FolderOpen, Settings } from 'lucide-vue-next'
+import { Grid3X3, Calendar, BarChart3, Archive, FolderOpen, Plus } from 'lucide-vue-next'
 import type { GroupByType } from '@/types/album'
 
 interface GroupOption {
@@ -11,15 +10,14 @@ interface GroupOption {
   description: string
 }
 
-defineProps<{
+const props = defineProps<{
   currentGroupBy: GroupByType
 }>()
 
 const emit = defineEmits<{
   change: [value: GroupByType]
+  createAlbum: []
 }>()
-
-const router = useRouter()
 
 const groupOptions: GroupOption[] = [
   {
@@ -58,8 +56,8 @@ const handleGroupChange = (value: GroupByType) => {
   emit('change', value)
 }
 
-const handleManageAlbums = () => {
-  router.push('/albums')
+const handleCreateAlbum = () => {
+  emit('createAlbum')
 }
 </script>
 
@@ -74,7 +72,7 @@ const handleManageAlbums = () => {
           :class="cn(
             'relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 group',
             'text-sm font-medium',
-            currentGroupBy === option.value
+            props.currentGroupBy === option.value
               ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
               : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
           )"
@@ -85,19 +83,20 @@ const handleManageAlbums = () => {
           
           <!-- Active indicator -->
           <div 
-            v-if="currentGroupBy === option.value"
+            v-if="props.currentGroupBy === option.value"
             class="absolute inset-0 bg-primary-500 rounded-lg opacity-10"
           />
         </button>
       </div>
       
-      <!-- Manage Albums Button -->
+      <!-- Create Album Button (only shown when album grouping is active) -->
       <button
-        @click="handleManageAlbums"
-        class="flex items-center space-x-2 px-4 py-2 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-200 text-sm font-medium"
+        v-if="props.currentGroupBy === 'album'"
+        @click="handleCreateAlbum"
+        class="flex items-center space-x-2 px-4 py-2 bg-primary-500/10 backdrop-blur-sm border border-primary-500/20 rounded-lg text-primary-300 hover:text-white hover:bg-primary-500/20 transition-all duration-200 text-sm font-medium"
       >
-        <Settings class="w-4 h-4" />
-        <span>管理相册</span>
+        <Plus class="w-4 h-4" />
+        <span>新建相册</span>
       </button>
     </div>
 
@@ -105,7 +104,7 @@ const handleManageAlbums = () => {
     <div class="md:hidden space-y-3">
       <div class="relative">
         <select 
-          :value="currentGroupBy"
+          :value="props.currentGroupBy"
           @change="handleGroupChange(($event.target as HTMLSelectElement).value as GroupByType)"
           class="w-full bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
         >
@@ -127,13 +126,14 @@ const handleManageAlbums = () => {
         </div>
       </div>
       
-      <!-- Mobile Manage Albums Button -->
+      <!-- Mobile Create Album Button (only shown when album grouping is active) -->
       <button
-        @click="handleManageAlbums"
-        class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-200 text-sm font-medium"
+        v-if="props.currentGroupBy === 'album'"
+        @click="handleCreateAlbum"
+        class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-primary-500/10 backdrop-blur-sm border border-primary-500/20 rounded-xl text-primary-300 hover:text-white hover:bg-primary-500/20 transition-all duration-200 text-sm font-medium"
       >
-        <Settings class="w-4 h-4" />
-        <span>管理相册</span>
+        <Plus class="w-4 h-4" />
+        <span>新建相册</span>
       </button>
     </div>
 
@@ -143,7 +143,7 @@ const handleManageAlbums = () => {
         <div class="flex items-center space-x-2 text-sm">
           <span class="text-gray-400">当前分组方式:</span>
           <span class="text-primary-300 font-medium">
-            {{ groupOptions.find(opt => opt.value === currentGroupBy)?.description }}
+            {{ groupOptions.find(opt => opt.value === props.currentGroupBy)?.description }}
           </span>
         </div>
       </div>

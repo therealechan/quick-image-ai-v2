@@ -13,6 +13,7 @@ const emit = defineEmits<{
   editAlbum: [album: Album]
   deleteAlbum: [albumId: string]
   selectAlbum: [album: Album]
+  viewAlbum: [album: Album]
 }>()
 
 const searchQuery = ref('')
@@ -155,7 +156,7 @@ const handleDeleteAlbum = (album: Album) => {
         <!-- Album Cover -->
         <div 
           class="aspect-square relative overflow-hidden bg-gray-700 cursor-pointer"
-          @click="emit('selectAlbum', album)"
+          @click="emit('viewAlbum', album)"
         >
           <img
             v-if="album.coverImage"
@@ -186,7 +187,7 @@ const handleDeleteAlbum = (album: Album) => {
         <div class="p-4">
           <h3 
             class="font-semibold text-white line-clamp-1 cursor-pointer hover:text-primary-300 transition-colors mb-2"
-            @click="emit('selectAlbum', album)"
+            @click="emit('viewAlbum', album)"
           >
             {{ album.name }}
           </h3>
@@ -221,7 +222,7 @@ const handleDeleteAlbum = (album: Album) => {
           <!-- Action Buttons -->
           <div class="flex items-center justify-between pt-2 border-t border-gray-700/50">
             <button
-              @click="emit('selectAlbum', album)"
+              @click="emit('viewAlbum', album)"
               class="flex items-center space-x-1 px-3 py-1.5 bg-primary-500/10 hover:bg-primary-500/20 text-primary-300 text-sm rounded-lg transition-colors"
             >
               <FolderOpen class="w-3 h-3" />

@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardSidebar from '@/components/DashboardSidebar.vue'
 import TimeGroupSelector from '@/components/TimeGroupSelector.vue'
 import ImageGallery from '@/components/ImageGallery.vue'
 import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
 import AlbumSelector from '@/components/AlbumSelector.vue'
 import CreateAlbumModal from '@/components/CreateAlbumModal.vue'
+import AlbumCard from '@/components/AlbumCard.vue'
+import { albumService } from '@/services/albumService'
 import type { GalleryImage, GroupByType, Album, AlbumGroup, CreateAlbumData } from '@/types/album'
+
+const router = useRouter()
 
 const isMobileMenuOpen = ref(false)
 const groupBy = ref<GroupByType>('all')
@@ -17,6 +22,11 @@ const isAlbumSelectorOpen = ref(false)
 const isCreateAlbumModalOpen = ref(false)
 const selectedImageIds = ref<string[]>([])
 const editingAlbum = ref<Album | null>(null)
+
+// Album management state
+const albumSearchQuery = ref('')
+const albumSortBy = ref<'name' | 'created' | 'updated' | 'count'>('updated')
+const albumSortOrder = ref<'asc' | 'desc'>('desc')
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
@@ -233,6 +243,60 @@ const groupedImages = computed((): AlbumGroup[] => {
 
 const totalImages = computed(() => mockImages.value.length)
 
+const albumsWithImages = computed(() => {
+  // 使用 albumService 获取相册数据
+  let filtered = albumService.getAllAlbums().filter(album => album.imageCount > 0)
+  
+  // 搜索过滤
+  if (albumSearchQuery.value) {
+    const query = albumSearchQuery.value.toLowerCase()
+    filtered = filtered.filter(album =>
+      album.name.toLowerCase().includes(query) ||
+      album.description?.toLowerCase().includes(query) ||
+      album.tags?.some(tag => tag.toLowerCase().includes(query))
+    )
+  }
+  
+  // 排序
+  filtered.sort((a, b) => {
+    let aValue: string | number | Date
+    let bValue: string | number | Date
+
+    switch (albumSortBy.value) {
+      case 'name':
+        aValue = a.name.toLowerCase()
+        bValue = b.name.toLowerCase()
+        break
+      case 'created':
+        aValue = a.createdAt.getTime()
+        bValue = b.createdAt.getTime()
+        break
+      case 'updated':
+        aValue = a.updatedAt.getTime()
+        bValue = b.updatedAt.getTime()
+        break
+      case 'count':
+        aValue = a.imageCount
+        bValue = b.imageCount
+        break
+      default:
+        return 0
+    }
+
+    if (albumSortOrder.value === 'asc') {
+      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+    } else {
+      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0
+    }
+  })
+  
+  return filtered
+})
+
+const ungroupedImages = computed(() => 
+  albumService.getImagesWithoutAlbum()
+)
+
 const handleGroupByChange = (newGroupBy: GroupByType) => {
   groupBy.value = newGroupBy
 }
@@ -258,20 +322,11 @@ const handleAlbumSelectorClose = () => {
 }
 
 const handleMoveImagesToAlbum = (albumId: string, imageIds: string[]) => {
-  mockImages.value.forEach(image => {
-    if (imageIds.includes(image.id)) {
-      image.albumId = albumId
-    }
-  })
-  
-  const targetAlbum = mockAlbums.value.find(album => album.id === albumId)
-  if (targetAlbum) {
-    targetAlbum.imageCount = mockImages.value.filter(img => img.albumId === albumId).length
-    targetAlbum.updatedAt = new Date()
-  }
+  albumService.moveImagesToAlbum(imageIds, albumId)
 }
 
 const handleCreateNewAlbum = () => {
+  editingAlbum.value = null
   isCreateAlbumModalOpen.value = true
 }
 
@@ -281,28 +336,12 @@ const handleCreateAlbumModalClose = () => {
 }
 
 const handleCreateAlbum = (data: CreateAlbumData) => {
-  const newAlbum: Album = {
-    id: `album-${Date.now()}`,
-    name: data.name,
-    description: data.description,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    imageCount: 0,
-    tags: data.tags
-  }
-  
-  mockAlbums.value.push(newAlbum)
+  albumService.createAlbum(data)
   isCreateAlbumModalOpen.value = false
 }
 
 const handleUpdateAlbum = (albumId: string, data: CreateAlbumData) => {
-  const album = mockAlbums.value.find(a => a.id === albumId)
-  if (album) {
-    album.name = data.name
-    album.description = data.description
-    album.tags = data.tags
-    album.updatedAt = new Date()
-  }
+  albumService.updateAlbum(albumId, data)
   isCreateAlbumModalOpen.value = false
   editingAlbum.value = null
 }
@@ -312,8 +351,23 @@ const handleEditAlbum = (album: Album) => {
   isCreateAlbumModalOpen.value = true
 }
 
+const handleAlbumCardClick = (album: Album) => {
+  router.push(`/albums/${album.id}`)
+}
+
+const handleDeleteAlbum = (album: Album) => {
+  if (confirm(`确定要删除相册 "${album.name}" 吗？此操作不可撤销，相册中的图片将移动到未分组。`)) {
+    albumService.deleteAlbum(album.id)
+  }
+}
+
 onMounted(() => {
   console.log('Gallery view mounted with', totalImages.value, 'images')
+  
+  // 初始化 albumService 的测试数据（如果还没有数据的话）
+  if (albumService.getAllAlbums().length === 0) {
+    albumService.initializeWithMockData(mockAlbums.value, mockImages.value)
+  }
 })
 </script>
 
@@ -335,11 +389,96 @@ onMounted(() => {
         <TimeGroupSelector 
           :current-group-by="groupBy" 
           @change="handleGroupByChange" 
+          @create-album="handleCreateNewAlbum"
         />
       </div>
 
       <!-- Gallery Content -->
-      <div class="space-y-12">
+      <div v-if="groupBy === 'album'">
+        <!-- Album Management Header -->
+        <div class="mb-8 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <!-- Search -->
+            <div class="flex-1 max-w-md">
+              <div class="relative">
+                <input
+                  v-model="albumSearchQuery"
+                  type="text"
+                  placeholder="搜索相册..."
+                  class="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <div class="absolute left-3 top-2.5">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sort Options -->
+            <div class="flex items-center space-x-3">
+              <select
+                v-model="albumSortBy"
+                class="bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="updated">更新时间</option>
+                <option value="created">创建时间</option>
+                <option value="name">名称</option>
+                <option value="count">图片数量</option>
+              </select>
+              <button
+                @click="albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'"
+                class="p-2 border border-gray-600 rounded-lg transition-colors hover:bg-gray-600/50 text-white"
+                :title="albumSortOrder === 'asc' ? '升序' : '降序'"
+              >
+                <svg 
+                  class="w-4 h-4" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  :style="{ transform: albumSortOrder === 'asc' ? 'rotate(180deg)' : 'rotate(0deg)' }"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Album Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <!-- Album Cards -->
+          <AlbumCard 
+            v-for="album in albumsWithImages"
+            :key="album.id"
+            :album="album"
+            @click="handleAlbumCardClick"
+            @edit="handleEditAlbum"
+            @delete="handleDeleteAlbum"
+          />
+        </div>
+        
+        <!-- Ungrouped Images Section -->
+        <div 
+          v-if="ungroupedImages.length > 0"
+          class="mt-12"
+        >
+          <div class="flex items-center space-x-3 mb-6">
+            <h2 class="text-lg font-medium text-white">未分组图片</h2>
+            <span class="bg-primary-500/20 text-primary-300 text-sm px-3 py-1 rounded-full">
+              {{ ungroupedImages.length }} 张图片
+            </span>
+          </div>
+          <ImageGallery 
+            :images="ungroupedImages" 
+            @image-click="handleImageClick"
+            @move-to-album="handleMoveToAlbum"
+          />
+        </div>
+      </div>
+
+      <!-- Other grouping modes -->
+      <div v-else class="space-y-12">
         <div 
           v-for="group in groupedImages" 
           :key="group.key"
@@ -348,21 +487,10 @@ onMounted(() => {
           <!-- Group Header -->
           <div v-if="groupBy !== 'all'" class="flex items-center justify-between mb-6">
             <div class="flex items-center space-x-3">
-              <h2 class="text-xl font-semibold text-white">{{ group.title }}</h2>
+              <h2 class="text-lg font-medium text-white">{{ group.title }}</h2>
               <span class="bg-primary-500/20 text-primary-300 text-sm px-3 py-1 rounded-full">
                 {{ group.count }} 张图片
               </span>
-              <!-- Add album button for album grouping -->
-              <button
-                v-if="groupBy === 'album' && group.album"
-                @click="handleEditAlbum(group.album)"
-                class="p-1.5 text-gray-400 hover:text-primary-300 hover:bg-primary-500/10 rounded-lg transition-colors"
-                title="编辑相册"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                </svg>
-              </button>
             </div>
             <div class="h-px bg-gradient-to-r from-gray-700 to-transparent flex-1 ml-6"></div>
           </div>
@@ -374,7 +502,6 @@ onMounted(() => {
             @move-to-album="handleMoveToAlbum"
           />
         </div>
-
       </div>
 
       <!-- Empty State -->
@@ -387,8 +514,8 @@ onMounted(() => {
             <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
           </svg>
         </div>
-        <h3 class="text-xl font-semibold text-gray-400 mb-2">暂无图片</h3>
-        <p class="text-gray-500">开始生成你的第一张AI图片吧</p>
+        <h3 class="text-lg font-medium text-gray-400 mb-2">暂无图片</h3>
+        <p class="text-sm text-gray-500">开始生成你的第一张AI图片吧</p>
         </div>
       </div>
 
@@ -403,7 +530,7 @@ onMounted(() => {
       <!-- Album Selector Modal -->
       <AlbumSelector
         :is-open="isAlbumSelectorOpen"
-        :albums="mockAlbums"
+        :albums="albumService.getAllAlbums()"
         :image-ids="selectedImageIds"
         @close="handleAlbumSelectorClose"
         @move-to-album="handleMoveImagesToAlbum"
