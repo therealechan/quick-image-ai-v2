@@ -892,6 +892,7 @@ const saveToHistory = () => {
     selectedBackground.value
 
   historyRef.value.addHistoryItem({
+    type: 'clothing',
     models: currentModels,
     tops: currentTops,
     bottoms: currentBottoms,
@@ -915,6 +916,7 @@ const saveQueueToHistory = () => {
   const combinedPrompt = generationQueue.value.map(item => `${item.count}x ${item.prompt}`).join(' | ')
   
   historyRef.value.addHistoryItem({
+    type: 'clothing',
     models: allModels,
     tops: allTops,
     bottoms: allBottoms,

@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
+import GenerationHistory from '../components/GenerationHistory.vue'
 import { Upload, Download, Camera } from 'lucide-vue-next'
+import type { PoseHistoryItem } from '../types/history'
 
 const isMobileMenuOpen = ref(false)
+
+// History panel state
+const isHistoryCollapsed = ref(true)
+const historyRef = ref<InstanceType<typeof GenerationHistory>>()
 
 // Selection states
 const selectedPose = ref<any>(null)
@@ -88,6 +94,38 @@ const closeMobileMenu = () => {
   isMobileMenuOpen.value = false
 }
 
+const toggleHistory = () => {
+  isHistoryCollapsed.value = !isHistoryCollapsed.value
+}
+
+const useHistoryItem = (historyItem: any) => {
+  // 确保是姿势历史记录
+  if (historyItem.type !== 'pose') return
+  
+  const poseItem = historyItem as PoseHistoryItem
+  // 恢复模特选择
+  if (poseItem.model) {
+    selectedModel.value = poseItem.model
+    uploadedModel.value = null
+  } else if (poseItem.uploadedModel) {
+    uploadedModel.value = poseItem.uploadedModel
+    selectedModel.value = null
+  }
+  
+  // 恢复姿势选择
+  selectedPose.value = poseItem.selectedPose
+  
+  // 恢复prompt设置
+  selectedPromptTemplate.value = poseItem.promptTemplate
+  customPrompt.value = poseItem.prompt
+  
+  // 恢复生成设置
+  generationCount.value = poseItem.generationCount
+  selectedAspectRatio.value = poseItem.aspectRatio
+  
+  console.log('已恢复历史配置:', poseItem)
+}
+
 const selectPose = (pose: any) => {
   selectedPose.value = pose
 }
@@ -129,13 +167,37 @@ const generatePoseImages = () => {
       'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop'
     ]
     
-    generatedResults.value = Array.from({ length: generationCount.value }, (_, index) => ({
+    const results = Array.from({ length: generationCount.value }, (_, index) => ({
       id: String(index + 1),
       url: mockImages[index % mockImages.length],
       aspectRatio: selectedAspectRatio.value
     }))
+    
+    generatedResults.value = results
     isGenerating.value = false
+    
+    // 保存到历史记录
+    saveToHistory(results)
   }, 3000)
+}
+
+const saveToHistory = (results: any[]) => {
+  if (!historyRef.value) return
+  
+  const historyItem: Omit<PoseHistoryItem, 'id' | 'timestamp' | 'isFavorite'> = {
+    type: 'pose',
+    model: selectedModel.value,
+    uploadedModel: uploadedModel.value,
+    selectedPose: selectedPose.value,
+    uploadedPose: null, // TODO: 当支持上传自定义姿势时使用
+    promptTemplate: selectedPromptTemplate.value,
+    prompt: customPrompt.value,
+    generationCount: generationCount.value,
+    aspectRatio: selectedAspectRatio.value,
+    results: results.map(r => ({ id: r.id, url: r.url }))
+  }
+  
+  historyRef.value.addHistoryItem(historyItem)
 }
 
 onMounted(() => {
@@ -153,6 +215,15 @@ onMounted(() => {
       :is-mobile-menu-open="isMobileMenuOpen"
       @toggle-mobile-menu="toggleMobileMenu"
       @close-mobile-menu="closeMobileMenu"
+    />
+
+    <!-- History Panel -->
+    <GenerationHistory 
+      ref="historyRef"
+      :is-collapsed="isHistoryCollapsed"
+      history-type="pose"
+      @use-history="useHistoryItem"
+      @toggle-collapse="toggleHistory"
     />
 
     <!-- Main Content -->

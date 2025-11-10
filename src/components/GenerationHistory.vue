@@ -1,24 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Clock, Star, Trash2, RotateCcw, ChevronLeft, ChevronRight, Eye, Download, ZoomIn, X } from 'lucide-vue-next'
-
-interface HistoryItem {
-  id: string
-  timestamp: Date
-  models: any[]
-  tops: any[]
-  bottoms: any[]
-  accessories: any[]
-  background: any
-  prompt: string
-  results: any[]
-  isFavorite: boolean
-  batchMode: boolean
-}
+import type { HistoryItem, ClothingHistoryItem, PoseHistoryItem, HistoryTypeString } from '../types/history'
 
 const props = defineProps<{
   isCollapsed?: boolean
+  historyType?: HistoryTypeString
 }>()
+
+// 默认为服装生成类型
+const currentHistoryType = computed(() => props.historyType || 'clothing')
 
 const emit = defineEmits<{
   'use-history': [item: HistoryItem]
@@ -35,10 +26,11 @@ const showResultsModal = ref(false)
 const selectedHistoryItem = ref<HistoryItem | null>(null)
 const currentImageIndex = ref(0)
 
-// Mock history data
-const mockHistoryData: HistoryItem[] = [
+// Mock data for clothing generation
+const mockClothingHistoryData: ClothingHistoryItem[] = [
   {
     id: '1',
+    type: 'clothing',
     timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
     models: [{ id: '1', name: '女性模特 A', thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=100&h=100&fit=crop' }],
     tops: [{ id: '1', name: '白色衬衫', thumbnail: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100&h=100&fit=crop' }],
@@ -55,6 +47,7 @@ const mockHistoryData: HistoryItem[] = [
   },
   {
     id: '2',
+    type: 'clothing',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
     models: [
       { id: '2', name: '女性模特 B', thumbnail: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&h=100&fit=crop' },
@@ -82,6 +75,7 @@ const mockHistoryData: HistoryItem[] = [
   },
   {
     id: '3',
+    type: 'clothing',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
     models: [{ id: '1', name: '女性模特 A', thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=100&h=100&fit=crop' }],
     tops: [{ id: '4', name: '西装外套', thumbnail: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=100&h=100&fit=crop' }],
@@ -97,18 +91,73 @@ const mockHistoryData: HistoryItem[] = [
   }
 ]
 
+// Mock data for pose generation
+const mockPoseHistoryData: PoseHistoryItem[] = [
+  {
+    id: 'p1',
+    type: 'pose',
+    timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
+    model: { id: '1', name: '女性模特 A', thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=100&h=100&fit=crop' },
+    uploadedModel: null,
+    selectedPose: { id: '1', name: '优雅站姿', thumbnail: 'https://images.unsplash.com/photo-1594736797933-d0d3023055e0?w=150&h=200&fit=crop' },
+    uploadedPose: null,
+    promptTemplate: { id: '1', name: '时尚模特', prompt: '时尚模特，专业摄影，高端时装，优雅姿态，完美光线' },
+    prompt: '时尚模特，专业摄影，高端时装，优雅姿态，完美光线',
+    generationCount: 3,
+    aspectRatio: { id: '9:16', name: '9:16', width: 9, height: 16 },
+    results: [
+      { id: 'pr1', url: 'https://images.unsplash.com/photo-1594736797933-d0d3023055e0?w=200&h=300&fit=crop' },
+      { id: 'pr2', url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=300&fit=crop' },
+      { id: 'pr3', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=300&fit=crop' }
+    ],
+    isFavorite: false
+  },
+  {
+    id: 'p2',
+    type: 'pose',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1), // 1 hour ago
+    model: null,
+    uploadedModel: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=400&fit=crop',
+    selectedPose: { id: '2', name: '动感跳跃', thumbnail: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&h=200&fit=crop' },
+    uploadedPose: null,
+    promptTemplate: { id: '2', name: '运动风格', prompt: '运动模特，活力四射，健康身材，运动服装，动感姿势' },
+    prompt: '运动模特，活力四射，健康身材，运动服装，动感姿势',
+    generationCount: 4,
+    aspectRatio: { id: '1:1', name: '1:1', width: 1, height: 1 },
+    results: [
+      { id: 'pr4', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=300&fit=crop' },
+      { id: 'pr5', url: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=200&h=300&fit=crop' }
+    ],
+    isFavorite: true
+  }
+]
+
 const filteredHistoryItems = computed(() => {
   let filtered = historyItems.value
 
   // Apply search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(item => 
-      item.prompt.toLowerCase().includes(query) ||
-      item.models.some(m => m.name.toLowerCase().includes(query)) ||
-      item.tops.some(t => t.name.toLowerCase().includes(query)) ||
-      item.bottoms.some(b => b.name.toLowerCase().includes(query))
-    )
+    filtered = filtered.filter(item => {
+      if (item.prompt.toLowerCase().includes(query)) return true
+      
+      if (item.type === 'clothing') {
+        const clothingItem = item as ClothingHistoryItem
+        return (
+          clothingItem.models.some(m => m.name.toLowerCase().includes(query)) ||
+          clothingItem.tops.some(t => t.name.toLowerCase().includes(query)) ||
+          clothingItem.bottoms.some(b => b.name.toLowerCase().includes(query))
+        )
+      } else if (item.type === 'pose') {
+        const poseItem = item as PoseHistoryItem
+        return (
+          poseItem.model?.name.toLowerCase().includes(query) ||
+          poseItem.selectedPose?.name.toLowerCase().includes(query) ||
+          poseItem.promptTemplate?.name.toLowerCase().includes(query)
+        )
+      }
+      return false
+    })
   }
 
   // Apply type filter
@@ -142,15 +191,25 @@ const formatTime = (date: Date) => {
 }
 
 const useHistoryItem = (item: HistoryItem) => {
-  const confirmed = confirm(
-    `确定要恢复历史记录吗？\n\n` +
-    `时间：${formatTime(item.timestamp)}\n` +
-    `模式：${item.batchMode ? '批量生成' : '单搭配生成'}\n` +
-    `模特：${item.models.length}个\n` +
-    `服装：${item.tops.length + item.bottoms.length}件\n` +
-    `Prompt：${item.prompt.slice(0, 100)}${item.prompt.length > 100 ? '...' : ''}\n\n` +
+  let confirmMessage = `确定要恢复历史记录吗？\n\n` +
+    `时间：${formatTime(item.timestamp)}\n`
+  
+  if (item.type === 'clothing') {
+    const clothingItem = item as ClothingHistoryItem
+    confirmMessage += `模式：${clothingItem.batchMode ? '批量生成' : '单搭配生成'}\n` +
+      `模特：${clothingItem.models.length}个\n` +
+      `服装：${clothingItem.tops.length + clothingItem.bottoms.length}件\n`
+  } else if (item.type === 'pose') {
+    const poseItem = item as PoseHistoryItem
+    confirmMessage += `类型：姿势生成\n` +
+      `模特：${poseItem.model || poseItem.uploadedModel ? '1个' : '无'}\n` +
+      `姿势：${poseItem.selectedPose?.name || '无'}\n`
+  }
+  
+  confirmMessage += `Prompt：${item.prompt.slice(0, 100)}${item.prompt.length > 100 ? '...' : ''}\n\n` +
     `这将覆盖当前的所有选择设置。`
-  )
+  
+  const confirmed = confirm(confirmMessage)
   
   if (confirmed) {
     emit('use-history', item)
@@ -224,12 +283,20 @@ const onImageError = (event: Event) => {
   }
 }
 
+const getStorageKey = () => {
+  return currentHistoryType.value === 'clothing' ? 'modelGenerationHistory' : 'poseGenerationHistory'
+}
+
+const getMockData = () => {
+  return currentHistoryType.value === 'clothing' ? mockClothingHistoryData : mockPoseHistoryData
+}
+
 const saveToLocalStorage = () => {
-  localStorage.setItem('modelGenerationHistory', JSON.stringify(historyItems.value))
+  localStorage.setItem(getStorageKey(), JSON.stringify(historyItems.value))
 }
 
 const loadFromLocalStorage = () => {
-  const stored = localStorage.getItem('modelGenerationHistory')
+  const stored = localStorage.getItem(getStorageKey())
   if (stored) {
     try {
       const parsed = JSON.parse(stored)
@@ -239,16 +306,16 @@ const loadFromLocalStorage = () => {
       }))
     } catch (error) {
       console.error('Failed to load history from localStorage:', error)
-      historyItems.value = mockHistoryData
+      historyItems.value = getMockData()
     }
   } else {
-    historyItems.value = mockHistoryData
+    historyItems.value = getMockData()
   }
 }
 
 // Add new history item (called from parent component)
-const addHistoryItem = (item: Omit<HistoryItem, 'id' | 'timestamp' | 'isFavorite'>) => {
-  const newItem: HistoryItem = {
+const addHistoryItem = (item: any) => {
+  const newItem = {
     ...item,
     id: Date.now().toString(),
     timestamp: new Date(),
@@ -336,7 +403,7 @@ onMounted(() => {
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center space-x-2">
                 <span class="text-xs text-gray-400">{{ formatTime(item.timestamp) }}</span>
-                <span v-if="item.batchMode" class="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded">
+                <span v-if="item.type === 'clothing' && (item as ClothingHistoryItem).batchMode" class="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded">
                   批量
                 </span>
               </div>
@@ -361,20 +428,48 @@ onMounted(() => {
 
             <!-- Preview Images -->
             <div class="grid grid-cols-4 gap-1 mb-2">
-              <!-- Models -->
-              <div v-for="model in item.models.slice(0, 1)" :key="model.id" class="aspect-square rounded overflow-hidden">
-                <img :src="model.thumbnail" :alt="model.name" class="w-full h-full object-cover" />
-              </div>
-              <!-- Clothing -->
-              <div v-for="top in item.tops.slice(0, 1)" :key="top.id" class="aspect-square rounded overflow-hidden">
-                <img :src="top.thumbnail" :alt="top.name" class="w-full h-full object-cover" />
-              </div>
-              <div v-for="bottom in item.bottoms.slice(0, 1)" :key="bottom.id" class="aspect-square rounded overflow-hidden">
-                <img :src="bottom.thumbnail" :alt="bottom.name" class="w-full h-full object-cover" />
-              </div>
+              <!-- For clothing generation -->
+              <template v-if="item.type === 'clothing'">
+                <!-- Models -->
+                <div v-for="model in (item as ClothingHistoryItem).models.slice(0, 1)" :key="model.id" class="aspect-square rounded overflow-hidden">
+                  <img :src="model.thumbnail" :alt="model.name" class="w-full h-full object-cover" />
+                </div>
+                <!-- Clothing -->
+                <div v-for="top in (item as ClothingHistoryItem).tops.slice(0, 1)" :key="top.id" class="aspect-square rounded overflow-hidden">
+                  <img :src="top.thumbnail" :alt="top.name" class="w-full h-full object-cover" />
+                </div>
+                <div v-for="bottom in (item as ClothingHistoryItem).bottoms.slice(0, 1)" :key="bottom.id" class="aspect-square rounded overflow-hidden">
+                  <img :src="bottom.thumbnail" :alt="bottom.name" class="w-full h-full object-cover" />
+                </div>
+              </template>
+              
+              <!-- For pose generation -->
+              <template v-else-if="item.type === 'pose'">
+                <!-- Model -->
+                <div v-if="(item as PoseHistoryItem).model || (item as PoseHistoryItem).uploadedModel" class="aspect-square rounded overflow-hidden">
+                  <img 
+                    :src="(item as PoseHistoryItem).model?.thumbnail || (item as PoseHistoryItem).uploadedModel" 
+                    :alt="(item as PoseHistoryItem).model?.name || '上传模特'" 
+                    class="w-full h-full object-cover" 
+                  />
+                </div>
+                <!-- Pose -->
+                <div v-if="(item as PoseHistoryItem).selectedPose" class="aspect-square rounded overflow-hidden">
+                  <img 
+                    :src="(item as PoseHistoryItem).selectedPose.thumbnail" 
+                    :alt="(item as PoseHistoryItem).selectedPose.name" 
+                    class="w-full h-full object-cover" 
+                  />
+                </div>
+                <!-- Aspect ratio indicator -->
+                <div v-if="(item as PoseHistoryItem).aspectRatio" class="aspect-square rounded overflow-hidden bg-gray-700 flex items-center justify-center">
+                  <span class="text-xs text-gray-400">{{ (item as PoseHistoryItem).aspectRatio.name }}</span>
+                </div>
+              </template>
+              
               <!-- Results preview -->
               <div v-if="item.results.length > 0" class="aspect-square rounded overflow-hidden">
-                <img :src="item.results[0].url" alt="Result" class="w-full h-full object-cover" />
+                <img :src="item.results[0]?.url || ''" alt="Result" class="w-full h-full object-cover" />
               </div>
             </div>
 
@@ -384,8 +479,15 @@ onMounted(() => {
               
               <!-- Info Row -->
               <div class="text-xs text-gray-500">
-                {{ item.models.length }}个模特 • {{ item.tops.length + item.bottoms.length }}件服装
-                {{ item.results.length > 0 ? ` • ${item.results.length}张结果` : '' }}
+                <template v-if="item.type === 'clothing'">
+                  {{ (item as ClothingHistoryItem).models.length }}个模特 • {{ (item as ClothingHistoryItem).tops.length + (item as ClothingHistoryItem).bottoms.length }}件服装
+                  {{ item.results.length > 0 ? ` • ${item.results.length}张结果` : '' }}
+                </template>
+                <template v-else-if="item.type === 'pose'">
+                  {{ (item as PoseHistoryItem).model || (item as PoseHistoryItem).uploadedModel ? '1个模特' : '无模特' }}
+                  {{ (item as PoseHistoryItem).selectedPose ? ` • ${(item as PoseHistoryItem).selectedPose.name}` : '' }}
+                  {{ item.results.length > 0 ? ` • ${item.results.length}张结果` : '' }}
+                </template>
               </div>
               
               <!-- Actions Row -->
@@ -442,15 +544,23 @@ onMounted(() => {
           <!-- Show result image if available, otherwise model image -->
           <img
             v-if="item.results.length > 0"
-            :src="item.results[0].url"
+            :src="item.results[0]?.url || ''"
             :alt="`历史记录 ${index + 1}`"
             class="w-full h-full object-cover"
             @error="onImageError"
             loading="lazy"
           />
           <img
-            v-else-if="item.models.length > 0"
-            :src="item.models[0].thumbnail"
+            v-else-if="item.type === 'clothing' && (item as ClothingHistoryItem).models.length > 0"
+            :src="(item as ClothingHistoryItem).models[0].thumbnail"
+            :alt="`历史记录 ${index + 1}`"
+            class="w-full h-full object-cover"
+            @error="onImageError"
+            loading="lazy"
+          />
+          <img
+            v-else-if="item.type === 'pose' && ((item as PoseHistoryItem).model || (item as PoseHistoryItem).uploadedModel)"
+            :src="(item as PoseHistoryItem).model?.thumbnail || (item as PoseHistoryItem).uploadedModel || ''"
             :alt="`历史记录 ${index + 1}`"
             class="w-full h-full object-cover"
             @error="onImageError"
@@ -473,7 +583,7 @@ onMounted(() => {
           
           <!-- Batch mode indicator -->
           <div
-            v-if="item.batchMode"
+            v-if="item.type === 'clothing' && (item as ClothingHistoryItem).batchMode"
             class="absolute top-0 left-0 w-2 h-2 bg-blue-400 rounded-br-md"
           ></div>
         </div>
@@ -553,7 +663,7 @@ onMounted(() => {
 
               <!-- Download Button -->
               <button
-                @click="downloadImage(selectedHistoryItem.results[currentImageIndex]?.url, currentImageIndex)"
+                @click="downloadImage(selectedHistoryItem.results[currentImageIndex]?.url || '', currentImageIndex)"
                 class="absolute bottom-4 right-4 p-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full transition-colors"
                 :title="'下载图片'"
               >
@@ -568,9 +678,18 @@ onMounted(() => {
             <div class="p-4 border-b border-gray-700">
               <h4 class="text-sm font-semibold text-white mb-2">生成信息</h4>
               <div class="space-y-2 text-xs text-gray-300">
-                <div><span class="text-gray-500">模式:</span> {{ selectedHistoryItem.batchMode ? '批量生成' : '单搭配生成' }}</div>
-                <div><span class="text-gray-500">模特:</span> {{ selectedHistoryItem.models.length }}个</div>
-                <div><span class="text-gray-500">服装:</span> {{ selectedHistoryItem.tops.length + selectedHistoryItem.bottoms.length }}件</div>
+                <template v-if="selectedHistoryItem.type === 'clothing'">
+                  <div><span class="text-gray-500">模式:</span> {{ (selectedHistoryItem as ClothingHistoryItem).batchMode ? '批量生成' : '单搭配生成' }}</div>
+                  <div><span class="text-gray-500">模特:</span> {{ (selectedHistoryItem as ClothingHistoryItem).models.length }}个</div>
+                  <div><span class="text-gray-500">服装:</span> {{ (selectedHistoryItem as ClothingHistoryItem).tops.length + (selectedHistoryItem as ClothingHistoryItem).bottoms.length }}件</div>
+                </template>
+                <template v-else-if="selectedHistoryItem.type === 'pose'">
+                  <div><span class="text-gray-500">类型:</span> 姿势生成</div>
+                  <div><span class="text-gray-500">模特:</span> {{ (selectedHistoryItem as PoseHistoryItem).model ? (selectedHistoryItem as PoseHistoryItem).model.name : '上传模特' }}</div>
+                  <div v-if="(selectedHistoryItem as PoseHistoryItem).selectedPose"><span class="text-gray-500">姿势:</span> {{ (selectedHistoryItem as PoseHistoryItem).selectedPose.name }}</div>
+                  <div v-if="(selectedHistoryItem as PoseHistoryItem).aspectRatio"><span class="text-gray-500">比例:</span> {{ (selectedHistoryItem as PoseHistoryItem).aspectRatio.name }}</div>
+                  <div><span class="text-gray-500">数量:</span> {{ (selectedHistoryItem as PoseHistoryItem).generationCount }}张</div>
+                </template>
                 <div><span class="text-gray-500">Prompt:</span></div>
                 <p class="text-gray-300 text-xs leading-relaxed bg-gray-700 p-2 rounded">{{ selectedHistoryItem.prompt }}</p>
               </div>
