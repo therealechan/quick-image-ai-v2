@@ -2415,30 +2415,17 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Prompt Comparison Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <!-- Current prompt -->
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-3">
-              当前 Prompt
-            </label>
-            <div class="p-4 bg-gray-800 rounded-lg text-gray-400 text-sm min-h-[120px] border border-gray-700">
-              {{ editingResults[0]?.config?.prompt || '无原始prompt' }}
-            </div>
-          </div>
-
-          <!-- Edit prompt -->
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-3">
-              新 Prompt *
-            </label>
-            <textarea
-              v-model="editPrompt"
-              placeholder="输入修改后的prompt描述..."
-              class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none min-h-[120px] text-sm"
-              rows="5"
-            ></textarea>
-          </div>
+        <!-- Edit Prompt -->
+        <div class="mb-8">
+          <label class="block text-sm font-medium text-gray-300 mb-3">
+            新 Prompt *
+          </label>
+          <textarea
+            v-model="editPrompt"
+            placeholder="输入修改后的prompt描述..."
+            class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 resize-none min-h-[120px] text-sm"
+            rows="5"
+          ></textarea>
         </div>
 
         <!-- Edit Info -->
