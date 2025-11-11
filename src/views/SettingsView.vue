@@ -183,9 +183,9 @@ onMounted(() => {
         <div class="mb-8">
           <div class="flex items-center space-x-3 mb-4">
             <Settings class="h-8 w-8 text-primary-500" />
-            <h1 class="text-4xl font-bold text-white">账户设置</h1>
+            <h1 class="text-2xl font-bold text-white">账户设置</h1>
           </div>
-          <p class="text-base text-gray-400">管理您的个人信息和账户设置</p>
+          <p class="text-sm text-gray-400">管理您的个人信息和账户设置</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
@@ -195,7 +195,7 @@ onMounted(() => {
             <div class="bg-gray-900 rounded-lg p-6 lg:p-8 border border-gray-800">
               <div class="flex items-center space-x-3 mb-6">
                 <User class="h-6 w-6 text-primary-400" />
-                <h2 class="text-2xl font-semibold text-white">个人信息</h2>
+                <h2 class="text-lg font-semibold text-white">个人信息</h2>
               </div>
 
               <!-- Success/Error Message -->
@@ -206,7 +206,7 @@ onMounted(() => {
                 <CheckCircle v-if="profileForm.messageType === 'success'" class="h-5 w-5 text-green-400" />
                 <AlertCircle v-else class="h-5 w-5 text-red-400" />
                 <span :class="[
-                  'text-base',
+                  'text-sm',
                   profileForm.messageType === 'success' ? 'text-green-400' : 'text-red-400'
                 ]">
                   {{ profileForm.message }}
@@ -222,7 +222,7 @@ onMounted(() => {
               <form @submit.prevent="updateProfile" class="space-y-6">
                 <!-- Name Field -->
                 <div>
-                  <label class="block text-base font-medium text-gray-300 mb-2">
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
                     姓名 <span class="text-red-400">*</span>
                   </label>
                   <input
@@ -236,7 +236,7 @@ onMounted(() => {
 
                 <!-- Email Field -->
                 <div>
-                  <label class="block text-base font-medium text-gray-300 mb-2">
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
                     邮箱地址 <span class="text-red-400">*</span>
                   </label>
                   <input
@@ -246,7 +246,7 @@ onMounted(() => {
                     class="w-full px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
                     placeholder="请输入您的邮箱地址"
                   />
-                  <p v-if="profileForm.email && !isValidEmail(profileForm.email)" class="mt-2 text-base text-red-400">
+                  <p v-if="profileForm.email && !isValidEmail(profileForm.email)" class="mt-2 text-sm text-red-400">
                     请输入有效的邮箱地址
                   </p>
                 </div>
@@ -267,7 +267,7 @@ onMounted(() => {
             <div class="bg-gray-900 rounded-lg p-6 lg:p-8 border border-gray-800">
               <div class="flex items-center space-x-3 mb-6">
                 <Lock class="h-6 w-6 text-primary-400" />
-                <h2 class="text-2xl font-semibold text-white">修改密码</h2>
+                <h2 class="text-lg font-semibold text-white">修改密码</h2>
               </div>
 
               <!-- Success/Error Message -->
@@ -278,7 +278,7 @@ onMounted(() => {
                 <CheckCircle v-if="passwordForm.messageType === 'success'" class="h-5 w-5 text-green-400" />
                 <AlertCircle v-else class="h-5 w-5 text-red-400" />
                 <span :class="[
-                  'text-base',
+                  'text-sm',
                   passwordForm.messageType === 'success' ? 'text-green-400' : 'text-red-400'
                 ]">
                   {{ passwordForm.message }}
@@ -294,7 +294,7 @@ onMounted(() => {
               <form @submit.prevent="updatePassword" class="space-y-6">
                 <!-- Current Password -->
                 <div>
-                  <label class="block text-base font-medium text-gray-300 mb-2">
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
                     当前密码 <span class="text-red-400">*</span>
                   </label>
                   <input
@@ -308,7 +308,7 @@ onMounted(() => {
 
                 <!-- New Password -->
                 <div>
-                  <label class="block text-base font-medium text-gray-300 mb-2">
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
                     新密码 <span class="text-red-400">*</span>
                   </label>
                   <input
@@ -319,14 +319,14 @@ onMounted(() => {
                     class="w-full px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
                     placeholder="请输入新密码 (至少6位)"
                   />
-                  <p v-if="passwordForm.newPassword && passwordForm.newPassword.length < 6" class="mt-2 text-base text-red-400">
+                  <p v-if="passwordForm.newPassword && passwordForm.newPassword.length < 6" class="mt-2 text-sm text-red-400">
                     密码长度至少为6位
                   </p>
                 </div>
 
                 <!-- Confirm Password -->
                 <div>
-                  <label class="block text-base font-medium text-gray-300 mb-2">
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
                     确认新密码 <span class="text-red-400">*</span>
                   </label>
                   <input
@@ -336,7 +336,7 @@ onMounted(() => {
                     class="w-full px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
                     placeholder="请再次输入新密码"
                   />
-                  <p v-if="passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword" class="mt-2 text-base text-red-400">
+                  <p v-if="passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword" class="mt-2 text-sm text-red-400">
                     两次输入的密码不一致
                   </p>
                 </div>
@@ -358,13 +358,13 @@ onMounted(() => {
           <div class="space-y-6">
             <!-- Account Information -->
             <div class="bg-gray-900 rounded-lg p-6 lg:p-8 border border-gray-800">
-              <h3 class="text-xl font-semibold text-white mb-6">账户信息</h3>
+              <h3 class="text-base font-semibold text-white mb-6">账户信息</h3>
               
               <div class="space-y-4">
                 <!-- User ID -->
                 <div class="flex items-center justify-between py-2 border-b border-gray-800">
-                  <span class="text-base text-gray-400">用户ID</span>
-                  <span class="text-base text-white font-mono">{{ currentUser?.id }}</span>
+                  <span class="text-sm text-gray-400">用户ID</span>
+                  <span class="text-sm text-white font-mono">{{ currentUser?.id }}</span>
                 </div>
                 
                 <!-- Email -->
@@ -373,7 +373,7 @@ onMounted(() => {
                     <Mail class="h-4 w-4 mr-2" />
                     邮箱
                   </span>
-                  <span class="text-base text-white">{{ currentUser?.email }}</span>
+                  <span class="text-sm text-white">{{ currentUser?.email }}</span>
                 </div>
                 
                 <!-- Registration Date -->
@@ -382,7 +382,7 @@ onMounted(() => {
                     <Calendar class="h-4 w-4 mr-2" />
                     注册时间
                   </span>
-                  <span class="text-base text-white">{{ currentUser ? formatDate(currentUser.createdAt) : '' }}</span>
+                  <span class="text-sm text-white">{{ currentUser ? formatDate(currentUser.createdAt) : '' }}</span>
                 </div>
               </div>
             </div>

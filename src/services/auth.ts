@@ -3,6 +3,7 @@ export interface User {
   email: string
   name: string
   createdAt: Date
+  credits?: number
 }
 
 export interface LoginCredentials {
@@ -37,13 +38,15 @@ const MOCK_USERS: User[] = [
     id: '1',
     email: 'demo@quickimage.ai',
     name: '演示用户',
-    createdAt: new Date('2024-01-01')
+    createdAt: new Date('2024-01-01'),
+    credits: 277
   },
   {
     id: '2',
     email: 'test@example.com',
     name: '测试用户',
-    createdAt: new Date('2024-01-15')
+    createdAt: new Date('2024-01-15'),
+    credits: 150
   }
 ]
 
@@ -139,7 +142,8 @@ class AuthService {
       id: Date.now().toString(),
       email,
       name,
-      createdAt: new Date()
+      createdAt: new Date(),
+      credits: 50 // New users get 50 credits
     }
 
     MOCK_USERS.push(newUser)
@@ -195,7 +199,8 @@ class AuthService {
         id: currentUserData.id,
         name,
         email,
-        createdAt: currentUserData.createdAt
+        createdAt: currentUserData.createdAt,
+        credits: currentUserData.credits
       }
       MOCK_USERS[userIndex] = updatedUser
       this.currentUser = updatedUser

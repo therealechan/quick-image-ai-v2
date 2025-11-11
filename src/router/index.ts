@@ -84,6 +84,21 @@ const router = createRouter({
       name: 'settings',
       component: () => import('../views/SettingsView.vue')
     },
+    {
+      path: '/subscription',
+      name: 'subscription',
+      component: () => import('../views/SubscriptionView.vue')
+    },
+    {
+      path: '/usage-history',
+      name: 'usage-history',
+      component: () => import('../views/UsageHistoryView.vue')
+    },
+    {
+      path: '/purchase-history',
+      name: 'purchase-history',
+      component: () => import('../views/PurchaseHistoryView.vue')
+    },
   ],
 })
 
