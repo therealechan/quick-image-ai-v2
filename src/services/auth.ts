@@ -22,6 +22,16 @@ export interface AuthResponse {
   error?: string
 }
 
+export interface UpdateProfileData {
+  name: string
+  email: string
+}
+
+export interface UpdatePasswordData {
+  currentPassword: string
+  newPassword: string
+}
+
 const MOCK_USERS: User[] = [
   {
     id: '1',
@@ -152,6 +162,78 @@ class AuthService {
 
   isAuthenticated(): boolean {
     return this.currentUser !== null
+  }
+
+  async updateProfile(data: UpdateProfileData): Promise<AuthResponse> {
+    await new Promise(resolve => setTimeout(resolve, 800))
+
+    if (!this.currentUser) {
+      return { success: false, error: '用户未登录' }
+    }
+
+    const { name, email } = data
+
+    if (!name || !email) {
+      return { success: false, error: '请填写所有必填字段' }
+    }
+
+    if (!this.isValidEmail(email)) {
+      return { success: false, error: '请输入有效的邮箱地址' }
+    }
+
+    // Check if email is already taken by another user
+    const existingUser = MOCK_USERS.find(u => u.email === email && u.id !== this.currentUser!.id)
+    if (existingUser) {
+      return { success: false, error: '该邮箱已被其他用户使用' }
+    }
+
+    // Update user data
+    const userIndex = MOCK_USERS.findIndex(u => u.id === this.currentUser!.id)
+    if (userIndex !== -1 && MOCK_USERS[userIndex]) {
+      const currentUserData = MOCK_USERS[userIndex]
+      const updatedUser: User = {
+        id: currentUserData.id,
+        name,
+        email,
+        createdAt: currentUserData.createdAt
+      }
+      MOCK_USERS[userIndex] = updatedUser
+      this.currentUser = updatedUser
+      this.saveUserToStorage(updatedUser)
+      
+      return { success: true, user: updatedUser }
+    }
+
+    return { success: false, error: '用户数据更新失败' }
+  }
+
+  async updatePassword(data: UpdatePasswordData): Promise<AuthResponse> {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    if (!this.currentUser) {
+      return { success: false, error: '用户未登录' }
+    }
+
+    const { currentPassword, newPassword } = data
+
+    if (!currentPassword || !newPassword) {
+      return { success: false, error: '请填写所有必填字段' }
+    }
+
+    if (newPassword.length < 6) {
+      return { success: false, error: '新密码至少需要6位字符' }
+    }
+
+    // Check current password
+    const expectedPassword = MOCK_PASSWORDS[this.currentUser.email]
+    if (!expectedPassword || currentPassword !== expectedPassword) {
+      return { success: false, error: '当前密码错误' }
+    }
+
+    // Update password
+    MOCK_PASSWORDS[this.currentUser.email] = newPassword
+    
+    return { success: true, user: this.currentUser }
   }
 
   private isValidEmail(email: string): boolean {

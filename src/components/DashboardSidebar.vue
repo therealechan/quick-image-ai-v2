@@ -120,7 +120,7 @@ const isActiveRoute = (path: string) => {
 
 const handleNavigation = (path: string) => {
   // 已实现的功能直接跳转
-  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/gallery') {
+  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/gallery' || path === '/settings') {
     router.push(path)
   } else {
     // For now, show placeholder for non-implemented routes
