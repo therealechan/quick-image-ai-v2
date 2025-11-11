@@ -106,8 +106,8 @@ const navigationItems = ref([
     active: false
   },
   {
-    name: '订阅管理',
-    shortName: '订阅',
+    name: '积分管理',
+    shortName: '积分',
     path: '/subscription',
     icon: CreditCard,
     active: false

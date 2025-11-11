@@ -402,7 +402,7 @@ onMounted(() => {
             class="flex items-center space-x-1 text-gray-400 hover:text-primary-400 transition-colors"
           >
             <Home class="h-4 w-4" />
-            <span>订阅管理</span>
+            <span>积分管理</span>
           </button>
           <ChevronRight class="h-4 w-4 text-gray-600" />
           <span class="text-primary-400 font-medium">使用记录</span>

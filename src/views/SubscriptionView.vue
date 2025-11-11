@@ -211,7 +211,7 @@ onMounted(() => {
         <div class="mb-8">
           <div class="flex items-center space-x-3 mb-4">
             <CreditCard class="h-8 w-8 text-primary-500" />
-            <h1 class="text-2xl font-bold text-white">订阅管理</h1>
+            <h1 class="text-2xl font-bold text-white">积分管理</h1>
           </div>
           <p class="text-sm text-gray-400">购买积分包并管理您的记录</p>
         </div>

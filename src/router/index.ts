@@ -86,7 +86,7 @@ const router = createRouter({
     },
     {
       path: '/subscription',
-      name: 'subscription',
+      name: 'credits-management',
       component: () => import('../views/SubscriptionView.vue')
     },
     {
