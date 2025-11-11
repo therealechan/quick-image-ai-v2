@@ -1196,7 +1196,7 @@ onMounted(() => {
     <main class="flex-1 flex overflow-hidden">
       <!-- Left Panel - Controls -->
       <div :class="[
-        'bg-gray-950 p-6 overflow-y-auto border-r border-gray-800',
+        'bg-gray-950 p-6 overflow-y-auto scrollbar-hide border-r border-gray-800',
         'w-full',
         'lg:w-2/5',
         'xl:w-1/3'
@@ -1834,7 +1834,7 @@ onMounted(() => {
 
       <!-- Right Panel - Queue & Results -->
       <div :class="[
-        'hidden lg:block bg-gray-900 p-6 overflow-y-auto',
+        'hidden lg:block bg-gray-900 p-6 overflow-y-auto scrollbar-hide',
         'lg:w-3/5',
         'xl:w-2/3'
       ]">
@@ -1866,7 +1866,7 @@ onMounted(() => {
             </div>
             
             <div v-else class="space-y-3">
-              <div class="bg-gray-800 rounded-lg max-h-64 overflow-y-auto">
+              <div class="bg-gray-800 rounded-lg max-h-64 overflow-y-auto scrollbar-hide">
                 <div
                   v-for="(item, index) in generationQueue"
                   :key="item.id"
@@ -2153,7 +2153,7 @@ onMounted(() => {
       class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
       @click.self="showCombinationPreview = false"
     >
-      <div class="bg-gray-900 rounded-lg p-8 w-[80vw] h-[80vh] overflow-y-auto mx-4">
+      <div class="bg-gray-900 rounded-lg p-8 w-[80vw] h-[80vh] overflow-y-auto scrollbar-hide mx-4">
         <div class="flex justify-between items-center mb-8">
           <div>
             <h3 class="text-2xl font-bold text-white">搭配组合预览</h3>
@@ -2361,7 +2361,7 @@ onMounted(() => {
       class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
       @click.self="showEditModal = false"
     >
-      <div class="bg-gray-900 rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[85vh] overflow-y-auto">
+      <div class="bg-gray-900 rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[85vh] overflow-y-auto scrollbar-hide">
         <div class="flex justify-between items-center mb-6">
           <div>
             <h3 class="text-lg font-bold text-white">编辑 Prompt</h3>
@@ -2476,7 +2476,7 @@ onMounted(() => {
       class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
       @click.self="closeMaterialModal()"
     >
-      <div class="bg-gray-900 rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="bg-gray-900 rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto scrollbar-hide">
         <!-- Modal Header -->
         <div class="flex justify-between items-center mb-6">
           <div>

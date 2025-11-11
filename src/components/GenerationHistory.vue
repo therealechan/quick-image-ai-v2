@@ -424,7 +424,7 @@ onMounted(() => {
       </div>
 
       <!-- History List -->
-      <div class="flex-1 overflow-y-auto px-4">
+      <div class="flex-1 overflow-y-auto scrollbar-hide px-4">
         <div class="space-y-3 pb-4">
           <div
             v-for="item in filteredHistoryItems"
@@ -766,7 +766,7 @@ onMounted(() => {
             </div>
 
             <!-- Thumbnails Grid -->
-            <div class="flex-1 overflow-y-auto p-4">
+            <div class="flex-1 overflow-y-auto scrollbar-hide p-4">
               <h4 class="text-sm font-semibold text-white mb-3">所有结果 ({{ selectedHistoryItem.results.length }})</h4>
               <div class="grid grid-cols-2 gap-2">
                 <div

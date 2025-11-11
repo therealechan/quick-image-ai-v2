@@ -369,7 +369,7 @@ onMounted(() => {
     <!-- Main Content -->
     <main class="flex-1 flex overflow-hidden">
       <!-- Left Panel - Controls -->
-      <div class="w-full lg:w-1/2 bg-gray-950 p-6 overflow-y-auto border-r border-gray-800">
+      <div class="w-full lg:w-1/2 bg-gray-950 p-6 overflow-y-auto scrollbar-hide border-r border-gray-800">
         <div class="max-w-lg mx-auto">
           <!-- Header -->
           <div class="mb-8">
@@ -672,7 +672,7 @@ onMounted(() => {
       </div>
 
       <!-- Right Panel - Results -->
-      <div class="hidden lg:block w-1/2 bg-gray-900 p-6 overflow-y-auto">
+      <div class="hidden lg:block w-1/2 bg-gray-900 p-6 overflow-y-auto scrollbar-hide">
         <div class="max-w-lg mx-auto">
           <div class="mb-6">
             <h2 class="text-lg font-semibold text-white mb-4">生成结果</h2>
@@ -792,7 +792,7 @@ onMounted(() => {
       class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
       @click.self="showModelSelection = false"
     >
-      <div class="bg-gray-900 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+      <div class="bg-gray-900 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[80vh] overflow-y-auto scrollbar-hide">
         <div class="flex justify-between items-center mb-6">
           <div>
             <h3 class="text-lg font-bold text-white">选择模特</h3>
@@ -890,7 +890,7 @@ onMounted(() => {
       class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
       @click.self="showEditModal = false"
     >
-      <div class="bg-gray-900 rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[85vh] overflow-y-auto">
+      <div class="bg-gray-900 rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[85vh] overflow-y-auto scrollbar-hide">
         <div class="flex justify-between items-center mb-6">
           <div>
             <h3 class="text-lg font-bold text-white">编辑 Prompt</h3>
@@ -913,7 +913,7 @@ onMounted(() => {
           <!-- Preview of editing results -->
           <div v-if="editingResults.length > 0">
             <label class="block text-sm font-medium text-gray-400 mb-3">编辑的图片预览</label>
-            <div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 max-h-32 overflow-y-auto">
+            <div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 max-h-32 overflow-y-auto scrollbar-hide">
               <div
                 v-for="result in editingResults"
                 :key="result.id"
