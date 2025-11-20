@@ -8,6 +8,7 @@ import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
 import AlbumSelector from '@/components/AlbumSelector.vue'
 import CreateAlbumModal from '@/components/CreateAlbumModal.vue'
 import AlbumCard from '@/components/AlbumCard.vue'
+import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
 import { albumService } from '@/services/albumService'
 import type { GalleryImage, GroupByType, Album, AlbumGroup, CreateAlbumData } from '@/types/album'
 
@@ -22,6 +23,10 @@ const isAlbumSelectorOpen = ref(false)
 const isCreateAlbumModalOpen = ref(false)
 const selectedImageIds = ref<string[]>([])
 const editingAlbum = ref<Album | null>(null)
+
+// Delete confirmation modal state
+const isDeleteModalOpen = ref(false)
+const imagesToDelete = ref<string[]>([])
 
 // Album management state
 const albumSearchQuery = ref('')
@@ -361,6 +366,24 @@ const handleDeleteAlbum = (album: Album) => {
   }
 }
 
+const handleDeleteImages = (imageIds: string[]) => {
+  imagesToDelete.value = imageIds
+  isDeleteModalOpen.value = true
+}
+
+const handleDeleteModalClose = () => {
+  isDeleteModalOpen.value = false
+  imagesToDelete.value = []
+}
+
+const handleDeleteModalConfirm = () => {
+  const success = albumService.removeImages(imagesToDelete.value)
+  if (success) {
+    console.log(`成功删除 ${imagesToDelete.value.length} 张图片`)
+  }
+  handleDeleteModalClose()
+}
+
 onMounted(() => {
   console.log('Gallery view mounted with', totalImages.value, 'images')
   
@@ -473,6 +496,7 @@ onMounted(() => {
             :images="ungroupedImages" 
             @image-click="handleImageClick"
             @move-to-album="handleMoveToAlbum"
+            @delete-images="handleDeleteImages"
           />
         </div>
       </div>
@@ -500,6 +524,7 @@ onMounted(() => {
             :images="group.images" 
             @image-click="handleImageClick"
             @move-to-album="handleMoveToAlbum"
+            @delete-images="handleDeleteImages"
           />
         </div>
       </div>
@@ -544,6 +569,14 @@ onMounted(() => {
         @close="handleCreateAlbumModalClose"
         @create="handleCreateAlbum"
         @update="handleUpdateAlbum"
+      />
+
+      <!-- Delete Confirmation Modal -->
+      <DeleteConfirmModal
+        :is-open="isDeleteModalOpen"
+        :image-count="imagesToDelete.length"
+        @close="handleDeleteModalClose"
+        @confirm="handleDeleteModalConfirm"
       />
 
       </div>
