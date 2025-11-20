@@ -193,12 +193,11 @@ class InvitationService {
     await new Promise(resolve => setTimeout(resolve, 400))
 
     const userInvitations = this.invitations.filter(inv => inv.inviterId === userId)
-    const completedInvitations = userInvitations.filter(inv => inv.status === 'completed')
-    const totalCreditsEarned = completedInvitations.reduce((sum, inv) => sum + inv.rewardCredits, 0)
+    // 由于所有邀请记录都表示成功注册，直接使用总数
+    const totalCreditsEarned = userInvitations.reduce((sum, inv) => sum + inv.rewardCredits, 0)
 
     const stats: InvitationStats = {
-      totalInvitations: userInvitations.length,
-      completedInvitations: completedInvitations.length,
+      successfulInvitations: userInvitations.length,
       totalCreditsEarned,
       invitationCode: await this.getUserInvitationCode(userId)
     }

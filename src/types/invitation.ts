@@ -12,8 +12,7 @@ export interface InvitationRecord {
 }
 
 export interface InvitationStats {
-  totalInvitations: number // 总邀请数
-  completedInvitations: number // 已完成邀请数
+  successfulInvitations: number // 成功邀请数
   totalCreditsEarned: number // 总获得积分
   invitationCode: string // 用户的邀请码
 }

@@ -197,20 +197,7 @@ onMounted(() => {
 
         <div v-else class="space-y-6">
           <!-- Stats Overview -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-              <div class="flex items-center space-x-3">
-                <div class="p-2 bg-blue-500/20 rounded-lg">
-                  <Users class="h-6 w-6 text-blue-400" />
-                </div>
-                <div>
-                  <p class="text-gray-400 text-sm">已邀请</p>
-                  <p class="text-3xl font-bold text-white">{{ stats?.totalInvitations || 0 }}</p>
-                  <p class="text-sm text-gray-500">总邀请数</p>
-                </div>
-              </div>
-            </div>
-
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
               <div class="flex items-center space-x-3">
                 <div class="p-2 bg-green-500/20 rounded-lg">
@@ -218,8 +205,8 @@ onMounted(() => {
                 </div>
                 <div>
                   <p class="text-gray-400 text-sm">成功邀请</p>
-                  <p class="text-3xl font-bold text-white">{{ stats?.completedInvitations || 0 }}</p>
-                  <p class="text-sm text-gray-500">已完成注册</p>
+                  <p class="text-3xl font-bold text-white">{{ stats?.successfulInvitations || 0 }}</p>
+                  <p class="text-sm text-gray-500">通过邀请码注册的用户</p>
                 </div>
               </div>
             </div>
@@ -296,7 +283,7 @@ onMounted(() => {
               <h2 class="text-xl font-semibold text-white">邀请记录</h2>
             </div>
 
-            <div v-if="totalInvitations === 0" class="text-center py-12">
+            <div v-if="(stats?.successfulInvitations || 0) === 0" class="text-center py-12">
               <Users class="h-12 w-12 text-gray-600 mx-auto mb-4" />
               <p class="text-gray-400 text-lg">还没有邀请记录</p>
               <p class="text-gray-500">分享你的邀请链接，开始赚取积分吧！</p>
