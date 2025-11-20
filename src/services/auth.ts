@@ -241,6 +241,19 @@ class AuthService {
     return { success: true, user: this.currentUser }
   }
 
+  async addCredits(userId: string, credits: number): Promise<void> {
+    const userIndex = MOCK_USERS.findIndex(u => u.id === userId)
+    if (userIndex !== -1 && MOCK_USERS[userIndex]) {
+      MOCK_USERS[userIndex].credits = (MOCK_USERS[userIndex].credits || 0) + credits
+      
+      // Update current user if it's the same user
+      if (this.currentUser && this.currentUser.id === userId) {
+        this.currentUser.credits = MOCK_USERS[userIndex].credits
+        this.saveUserToStorage(this.currentUser)
+      }
+    }
+  }
+
   private isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)

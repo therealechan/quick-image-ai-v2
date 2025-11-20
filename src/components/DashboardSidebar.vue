@@ -11,7 +11,8 @@ import {
   CreditCard, 
   LogOut, 
   Sparkles,
-  X
+  X,
+  Gift
 } from 'lucide-vue-next'
 
 interface SidebarProps {
@@ -84,6 +85,13 @@ const navigationItems = ref([
     path: '/subscription',
     icon: CreditCard,
     active: false
+  },
+  {
+    name: '赚分',
+    shortName: '赚分',
+    path: '/invitation',
+    icon: Gift,
+    active: false
   }
 ])
 
@@ -93,7 +101,7 @@ const isActiveRoute = (path: string) => {
 
 const handleNavigation = (path: string) => {
   // 已实现的功能直接跳转
-  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/gallery' || path === '/settings' || path === '/subscription') {
+  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/gallery' || path === '/settings' || path === '/subscription' || path === '/invitation') {
     router.push(path)
   } else {
     // For now, show placeholder for non-implemented routes

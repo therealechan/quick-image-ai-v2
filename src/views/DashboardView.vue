@@ -94,8 +94,8 @@ onMounted(() => {
       <div class="flex-1 overflow-y-auto p-6 lg:p-8">
         <!-- Welcome Section -->
         <div class="mb-8">
-          <h1 class="text-2xl font-bold text-white mb-2">欢迎回来！</h1>
-          <p class="text-sm text-gray-400">这是你的创作概览和快速操作面板</p>
+          <h1 class="text-3xl font-bold text-white mb-2">欢迎回来！</h1>
+          <p class="text-base text-gray-400">这是你的创作概览和快速操作面板</p>
         </div>
 
 
@@ -107,8 +107,8 @@ onMounted(() => {
                 <Image class="h-6 w-6 text-blue-400" />
               </div>
               <div>
-                <p class="text-gray-400 text-xs">总图片</p>
-                <p class="text-lg font-bold text-white">{{ mockStats.totalImages.toLocaleString() }}</p>
+                <p class="text-gray-400 text-sm">总图片</p>
+                <p class="text-xl font-bold text-white">{{ mockStats.totalImages.toLocaleString() }}</p>
               </div>
             </div>
           </div>
@@ -119,8 +119,8 @@ onMounted(() => {
                 <BarChart3 class="h-6 w-6 text-green-400" />
               </div>
               <div>
-                <p class="text-gray-400 text-xs">项目</p>
-                <p class="text-lg font-bold text-white">{{ mockStats.totalProjects }}</p>
+                <p class="text-gray-400 text-sm">项目</p>
+                <p class="text-xl font-bold text-white">{{ mockStats.totalProjects }}</p>
               </div>
             </div>
           </div>
@@ -131,8 +131,8 @@ onMounted(() => {
                 <TrendingUp class="h-6 w-6 text-purple-400" />
               </div>
               <div>
-                <p class="text-gray-400 text-xs">本月</p>
-                <p class="text-lg font-bold text-white">{{ mockStats.monthlyImages }}</p>
+                <p class="text-gray-400 text-sm">本月</p>
+                <p class="text-xl font-bold text-white">{{ mockStats.monthlyImages }}</p>
               </div>
             </div>
           </div>
@@ -143,8 +143,8 @@ onMounted(() => {
                 <Zap class="h-6 w-6 text-yellow-400" />
               </div>
               <div>
-                <p class="text-gray-400 text-xs">积分</p>
-                <p class="text-lg font-bold text-white">{{ mockStats.creditsRemaining }}</p>
+                <p class="text-gray-400 text-sm">积分</p>
+                <p class="text-xl font-bold text-white">{{ mockStats.creditsRemaining }}</p>
               </div>
             </div>
           </div>
@@ -164,8 +164,8 @@ onMounted(() => {
                   <Plus class="h-6 w-6" />
                 </div>
                 <div class="text-left">
-                  <h3 class="text-lg font-semibold">创建新项目</h3>
-                  <p class="text-sm text-primary-100">使用AI生成精美图像</p>
+                  <h3 class="text-xl font-semibold">创建新项目</h3>
+                  <p class="text-base text-primary-100">使用AI生成精美图像</p>
                 </div>
               </button>
             </div>
@@ -173,8 +173,8 @@ onMounted(() => {
             <!-- Recent Projects -->
             <div class="bg-gray-800 rounded-xl border border-gray-700 p-6 flex-1 min-h-0">
               <div class="flex items-center justify-between mb-6">
-                <h2 class="text-lg font-semibold text-white">最近的项目</h2>
-                <button class="text-sm text-primary-400 hover:text-primary-300 transition-colors">
+                <h2 class="text-xl font-semibold text-white">最近的项目</h2>
+                <button class="text-base text-primary-400 hover:text-primary-300 transition-colors">
                   查看全部
                 </button>
               </div>
@@ -190,8 +190,8 @@ onMounted(() => {
                     class="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                   />
                   <div class="flex-1 min-w-0">
-                    <h3 class="text-white font-medium truncate">{{ project.name }}</h3>
-                    <p class="text-gray-400 text-sm truncate">{{ project.imageCount }} 张图片 • {{ project.lastModified }}</p>
+                    <h3 class="text-white font-medium truncate text-base">{{ project.name }}</h3>
+                    <p class="text-gray-400 truncate">{{ project.imageCount }} 张图片 • {{ project.lastModified }}</p>
                   </div>
                   <div class="flex items-center flex-shrink-0">
                     <span
@@ -215,8 +215,8 @@ onMounted(() => {
             <!-- Recent Images Gallery -->
             <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-white">最新图片</h2>
-                <button class="text-sm text-primary-400 hover:text-primary-300 transition-colors">
+                <h2 class="text-xl font-semibold text-white">最新图片</h2>
+                <button class="text-base text-primary-400 hover:text-primary-300 transition-colors">
                   查看更多
                 </button>
               </div>
@@ -239,7 +239,7 @@ onMounted(() => {
             <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
               <div class="flex items-center space-x-2 mb-4">
                 <Activity class="h-5 w-5 text-primary-400" />
-                <h2 class="text-lg font-semibold text-white">最近活动</h2>
+                <h2 class="text-xl font-semibold text-white">最近活动</h2>
               </div>
               <div class="space-y-4 max-h-64 overflow-y-auto">
                 <div
@@ -249,8 +249,8 @@ onMounted(() => {
                 >
                   <div class="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0"></div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-white text-sm truncate">{{ activity.action }}</p>
-                    <p class="text-gray-400 text-xs truncate">{{ activity.project }}</p>
+                    <p class="text-white truncate">{{ activity.action }}</p>
+                    <p class="text-gray-400 text-sm truncate">{{ activity.project }}</p>
                   </div>
                   <div class="flex items-center space-x-1 text-gray-500 flex-shrink-0">
                     <Clock class="h-3 w-3" />

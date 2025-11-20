@@ -1,19 +1,28 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { Mail, Lock, User, Eye, EyeOff, Loader2, Check, X } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { Mail, Lock, User, Eye, EyeOff, Loader2, Check, X, Gift } from 'lucide-vue-next'
 import { authService, type SignUpCredentials } from '../services/auth'
+import { invitationService } from '../services/invitationService'
 
 const router = useRouter()
+const route = useRoute()
 
 const name = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const invitationCode = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const isLoading = ref(false)
 const error = ref('')
+
+// Special invitation code info
+const specialInviteInfo = computed(() => {
+  if (!invitationCode.value.trim()) return null
+  return invitationService.getSpecialInvitationInfo(invitationCode.value.trim())
+})
 
 const isValidEmail = computed(() => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -59,6 +68,7 @@ const handleSignUp = async () => {
   isLoading.value = true
 
   try {
+    // 首先注册用户
     const credentials: SignUpCredentials = {
       name: name.value,
       email: email.value,
@@ -67,7 +77,22 @@ const handleSignUp = async () => {
 
     const result = await authService.signUp(credentials)
 
-    if (result.success) {
+    if (result.success && result.user) {
+      // 如果有邀请码，处理邀请奖励
+      if (invitationCode.value.trim()) {
+        try {
+          await invitationService.processInvitation({
+            invitationCode: invitationCode.value.trim(),
+            newUserId: result.user.id,
+            newUserName: result.user.name,
+            newUserEmail: result.user.email
+          })
+        } catch (inviteError) {
+          console.error('处理邀请码失败:', inviteError)
+          // 不阻止注册流程，邀请码处理失败不影响正常注册
+        }
+      }
+
       router.push('/model-generation')
     } else {
       error.value = result.error || '注册失败'
@@ -82,6 +107,14 @@ const handleSignUp = async () => {
 const goToLogin = () => {
   router.push('/login')
 }
+
+onMounted(() => {
+  // 检查URL参数中的邀请码
+  const inviteParam = route.query.invitation
+  if (inviteParam && typeof inviteParam === 'string') {
+    invitationCode.value = inviteParam
+  }
+})
 </script>
 
 <template>
@@ -216,6 +249,32 @@ const goToLogin = () => {
             <p v-else-if="confirmPassword && passwordsMatch" class="mt-1 text-sm text-green-400">
               密码确认正确
             </p>
+          </div>
+
+          <div>
+            <label for="invitationCode" class="block text-sm font-medium text-gray-300 mb-2">
+              邀请码 <span class="text-gray-500">(可选)</span>
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Gift class="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                id="invitationCode"
+                v-model="invitationCode"
+                type="text"
+                class="w-full pl-10 pr-3 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 transition-colors"
+                placeholder="输入邀请码（如有）"
+              />
+            </div>
+            <div v-if="invitationCode" class="mt-2">
+              <p v-if="specialInviteInfo" class="text-sm text-green-400 font-medium">
+                🎉 {{ specialInviteInfo.description }}
+              </p>
+              <p v-else class="text-sm text-blue-400">
+                使用邀请码注册，邀请人将获得1000积分奖励
+              </p>
+            </div>
           </div>
 
           <div v-if="error" class="bg-red-900/20 border border-red-800 text-red-400 px-4 py-3 rounded-lg text-sm">

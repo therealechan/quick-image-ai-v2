@@ -99,6 +99,11 @@ const router = createRouter({
       name: 'purchase-history',
       component: () => import('../views/PurchaseHistoryView.vue')
     },
+    {
+      path: '/invitation',
+      name: 'invitation',
+      component: () => import('../views/InvitationView.vue')
+    },
   ],
 })
 
