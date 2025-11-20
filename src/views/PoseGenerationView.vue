@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
 import GenerationHistory from '../components/GenerationHistory.vue'
-import { Download, Camera, Check, Edit2 } from 'lucide-vue-next'
+import { Download, Camera, Check, Edit2, FileText, Image } from 'lucide-vue-next'
 import type { PoseHistoryItem } from '../types/history'
 
 const isMobileMenuOpen = ref(false)
@@ -379,40 +379,46 @@ onMounted(() => {
 
           <!-- Generation Mode Toggle -->
           <div class="mb-8">
-            <div class="flex items-center justify-between">
-              <div>
-                <h2 class="text-lg font-semibold text-white">生成方式</h2>
-                <p class="text-sm text-gray-400">
-                  {{ generationMode === 'prompt' ? '使用文字描述生成想要的姿势' : '使用参考图片模仿姿势动作' }}
-                </p>
-              </div>
-              <div class="flex items-center space-x-3">
-                <span :class="[
-                  'text-sm font-medium transition-colors',
-                  generationMode === 'prompt' ? 'text-white' : 'text-gray-400'
-                ]">
-                  文字描述
-                </span>
+            <!-- Generation Mode Header -->
+            <div class="mt-4 flex items-center space-x-4">
+              <span class="text-gray-300 text-sm font-medium">生成方式:</span>
+              <div class="flex bg-gray-800/50 rounded-lg p-1 border border-gray-700">
                 <button
-                  @click="switchGenerationMode(generationMode === 'prompt' ? 'pose' : 'prompt')"
+                  @click="switchGenerationMode('prompt')"
                   :class="[
-                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2',
-                    generationMode === 'pose' ? 'bg-primary-600' : 'bg-gray-600'
+                    'px-6 py-2.5 rounded-md text-sm font-medium transition-all duration-200 min-w-[120px] flex items-center space-x-2',
+                    generationMode === 'prompt' 
+                      ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' 
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
                   ]"
                 >
-                  <span
-                    :class="[
-                      'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-                      generationMode === 'pose' ? 'translate-x-5' : 'translate-x-0'
-                    ]"
-                  />
+                  <FileText class="w-4 h-4" />
+                  <span>文字描述</span>
                 </button>
-                <span :class="[
-                  'text-sm font-medium transition-colors',
-                  generationMode === 'pose' ? 'text-white' : 'text-gray-400'
-                ]">
-                  姿势参考
-                </span>
+                <button
+                  @click="switchGenerationMode('pose')"
+                  :class="[
+                    'px-6 py-2.5 rounded-md text-sm font-medium transition-all duration-200 min-w-[120px] flex items-center space-x-2',
+                    generationMode === 'pose' 
+                      ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' 
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  ]"
+                >
+                  <Image class="w-4 h-4" />
+                  <span>姿势参考</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Mode Description -->
+            <div class="mt-3 p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
+              <div v-if="generationMode === 'prompt'" class="flex items-center space-x-2 text-xs text-gray-400">
+                <FileText class="w-3.5 h-3.5 text-primary-400" />
+                <span>文字描述模式：使用文字描述生成想要的姿势</span>
+              </div>
+              <div v-else class="flex items-center space-x-2 text-xs text-gray-400">
+                <Image class="w-3.5 h-3.5 text-primary-400" />
+                <span>姿势参考模式：使用参考图片模仿姿势动作</span>
               </div>
             </div>
           </div>

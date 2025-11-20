@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
 import GenerationHistory from '../components/GenerationHistory.vue'
-import { Upload, Download, Edit2, Check, Search, ChevronDown, ChevronUp, Star, Filter } from 'lucide-vue-next'
+import { Upload, Download, Edit2, Check, Search, ChevronDown, ChevronUp, Star, Filter, User, Users } from 'lucide-vue-next'
 
 const isMobileMenuOpen = ref(false)
 
@@ -1208,30 +1208,46 @@ onMounted(() => {
             <p class="text-gray-400 text-sm">选择模特、服装搭配和背景，生成完整的模特展示图</p>
             
             <!-- Batch Mode Toggle -->
-            <div class="mt-4 flex items-center space-x-3">
-              <span class="text-gray-300 text-sm">生成模式:</span>
-              <button
-                @click="batchMode = false"
-                :class="[
-                  'px-3 py-1 rounded-md text-xs font-medium transition-all',
-                  !batchMode ? 'bg-primary-500 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                ]"
-              >
-                单搭配
-              </button>
-              <button
-                @click="batchMode = true"
-                :class="[
-                  'px-3 py-1 rounded-md text-xs font-medium transition-all',
-                  batchMode ? 'bg-primary-500 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                ]"
-              >
-                批量搭配
-              </button>
+            <div class="mt-4 flex items-center space-x-4">
+              <span class="text-gray-300 text-sm font-medium">生成模式:</span>
+              <div class="flex bg-gray-800/50 rounded-lg p-1 border border-gray-700">
+                <button
+                  @click="batchMode = false"
+                  :class="[
+                    'px-6 py-2.5 rounded-md text-sm font-medium transition-all duration-200 min-w-[100px] flex items-center space-x-2',
+                    !batchMode 
+                      ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' 
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  ]"
+                >
+                  <User class="w-4 h-4" />
+                  <span>单搭配</span>
+                </button>
+                <button
+                  @click="batchMode = true"
+                  :class="[
+                    'px-6 py-2.5 rounded-md text-sm font-medium transition-all duration-200 min-w-[100px] flex items-center space-x-2',
+                    batchMode 
+                      ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' 
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  ]"
+                >
+                  <Users class="w-4 h-4" />
+                  <span>批量搭配</span>
+                </button>
+              </div>
             </div>
             
-            <div v-if="batchMode" class="mt-2 text-xs text-primary-400">
-              批量模式：选择多个服装生成所有搭配组合
+            <!-- Mode Description -->
+            <div class="mt-3 p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
+              <div v-if="!batchMode" class="flex items-center space-x-2 text-xs text-gray-400">
+                <User class="w-3.5 h-3.5 text-primary-400" />
+                <span>单搭配模式：每次生成一个完整搭配</span>
+              </div>
+              <div v-else class="flex items-center space-x-2 text-xs text-gray-400">
+                <Users class="w-3.5 h-3.5 text-primary-400" />
+                <span>批量模式：选择多个服装生成所有搭配组合</span>
+              </div>
             </div>
           </div>
 
