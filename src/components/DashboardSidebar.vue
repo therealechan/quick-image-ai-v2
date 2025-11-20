@@ -32,41 +32,14 @@ const route = useRoute()
 
 const user = computed(() => authService.getCurrentUser())
 const isCollapsed = ref(true) // 默认折叠
-const isHovered = ref(false)
-const hoverTimeout = ref<number | null>(null)
 
-// 计算实际显示状态：折叠状态下悬停时展开
+// 计算实际显示状态：仅基于手动切换
 const isExpanded = computed(() => {
-  return !isCollapsed.value || isHovered.value
+  return !isCollapsed.value
 })
 
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value
-  // 如果手动展开，清除悬停状态
-  if (!isCollapsed.value) {
-    isHovered.value = false
-  }
-}
-
-const handleMouseEnter = () => {
-  if (isCollapsed.value) {
-    // 清除之前的延迟
-    if (hoverTimeout.value) {
-      clearTimeout(hoverTimeout.value)
-      hoverTimeout.value = null
-    }
-    isHovered.value = true
-  }
-}
-
-const handleMouseLeave = () => {
-  if (isCollapsed.value) {
-    // 延迟折叠，避免鼠标快速移动时闪烁
-    hoverTimeout.value = setTimeout(() => {
-      isHovered.value = false
-      hoverTimeout.value = null
-    }, 300)
-  }
 }
 
 const navigationItems = ref([
@@ -151,8 +124,6 @@ const goToHome = () => {
 
   <!-- Sidebar -->
   <aside
-    @mouseenter="handleMouseEnter"
-    @mouseleave="handleMouseLeave"
     :class="[
       'fixed top-0 left-0 z-50 h-screen bg-gray-900 border-r border-gray-800 transition-all duration-300 ease-in-out',
       'lg:translate-x-0 lg:relative lg:z-auto',
