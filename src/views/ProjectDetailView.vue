@@ -49,6 +49,15 @@ const selectedPose = ref<any>(null)
 const uploadedPose = ref<string | null>(null)
 const generatedResults = ref<any[]>([])
 const isGenerating = ref(false)
+const generationProgress = ref('')
+const progressSteps = ref([
+  '正在处理...',
+  '生成中...',
+  '优化中...',
+  '精修中...',
+  '即将完成...'
+])
+const currentStep = ref(0)
 const generationCount = ref(3)
 const batchMode = ref(false) // Toggle between single and batch mode
 
@@ -577,6 +586,22 @@ const generateSingleImage = () => {
   }
   
   isGenerating.value = true
+  currentStep.value = 0
+  
+  // 模拟生成过程 - 分步进度
+  const simulateProgress = () => {
+    const interval = setInterval(() => {
+      if (currentStep.value < progressSteps.value.length - 1) {
+        currentStep.value++
+        generationProgress.value = progressSteps.value[currentStep.value]
+      } else {
+        clearInterval(interval)
+      }
+    }, 1000) // 每1000ms更新一次进度
+  }
+  
+  generationProgress.value = progressSteps.value[0]
+  simulateProgress()
   
   // 模拟生成过程
   setTimeout(() => {
@@ -664,6 +689,8 @@ const generateQueueItems = () => {
     saveQueueToStorage()
     
     isGenerating.value = false
+    generationProgress.value = ''
+    currentStep.value = 0
   }, 6000)
 }
 
@@ -684,7 +711,23 @@ const generateBatchImages = () => {
   }
   
   isGenerating.value = true
+  currentStep.value = 0
   showCombinationPreview.value = false
+  
+  // 模拟批量生成过程 - 分步进度
+  const simulateProgress = () => {
+    const interval = setInterval(() => {
+      if (currentStep.value < progressSteps.value.length - 1) {
+        currentStep.value++
+        generationProgress.value = progressSteps.value[currentStep.value]
+      } else {
+        clearInterval(interval)
+      }
+    }, 1000)
+  }
+  
+  generationProgress.value = progressSteps.value[0]
+  simulateProgress()
   
   // 模拟批量生成过程
   setTimeout(() => {
@@ -1832,6 +1875,7 @@ onMounted(() => {
               <p class="text-gray-500 text-sm">
                 预计生成时间：3-5分钟
               </p>
+              <p v-if="isGenerating" class="text-primary-400 text-sm mt-2 font-medium">{{ generationProgress }}</p>
             </div>
           </div>
           
@@ -1963,7 +2007,8 @@ onMounted(() => {
 
           <div v-if="isGenerating" class="text-center py-16">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-            <p class="text-gray-400">正在生成模特图...</p>
+            <p class="text-gray-400 mb-2">正在生成模特图</p>
+            <p class="text-primary-400 text-sm font-medium">{{ generationProgress }}</p>
           </div>
 
           <div v-else-if="generatedResults.length > 0" class="space-y-6">

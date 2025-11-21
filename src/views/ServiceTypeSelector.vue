@@ -20,7 +20,8 @@ const serviceTypes = ref([
     icon: User,
     color: 'from-blue-500 to-blue-600',
     features: ['8步完整流程', '虚拟形象选择', '服装搭配系统', '背景场景设置'],
-    estimatedTime: '2-3分钟'
+    estimatedTime: '2-3分钟',
+    progressSteps: ['正在处理', '生成中', '优化中', '精修中', '即将完成']
   },
   {
     id: 'pose',
@@ -30,7 +31,8 @@ const serviceTypes = ref([
     icon: Camera,
     color: 'from-green-500 to-green-600',
     features: ['姿势参考导入', '模特库选择', '姿势细节调整', '快速生成'],
-    estimatedTime: '1-2分钟'
+    estimatedTime: '1-2分钟',
+    progressSteps: ['正在处理', '生成中', '优化中', '即将完成']
   },
   {
     id: 'upscale',
@@ -40,7 +42,8 @@ const serviceTypes = ref([
     icon: Zap,
     color: 'from-purple-500 to-purple-600',
     features: ['多倍数放大', '智能细节增强', '噪点减少', '批量处理'],
-    estimatedTime: '30-60秒'
+    estimatedTime: '30-60秒',
+    progressSteps: ['正在处理', '处理中', '优化中', '精修中', '即将完成']
   }
 ])
 

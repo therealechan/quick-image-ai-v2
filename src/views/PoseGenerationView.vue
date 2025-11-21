@@ -21,6 +21,14 @@ const uploadedModel = ref<string | null>(null)
 const showModelSelection = ref(false)
 const generatedResults = ref<any[]>([])
 const isGenerating = ref(false)
+const generationProgress = ref('')
+const progressSteps = ref([
+  '正在处理...',
+  '生成中...',
+  '优化中...',
+  '即将完成...'
+])
+const currentStep = ref(0)
 const generationCount = ref(3)
 const selectedPromptTemplate = ref<any>(null)
 const customPrompt = ref('')
@@ -213,8 +221,23 @@ const generatePoseImages = () => {
   }
   
   isGenerating.value = true
+  currentStep.value = 0
   
-  // 模拟生成过程
+  // 模拟生成过程 - 分步进度
+  const simulateProgress = () => {
+    const interval = setInterval(() => {
+      if (currentStep.value < progressSteps.value.length - 1) {
+        currentStep.value++
+        generationProgress.value = progressSteps.value[currentStep.value]
+      } else {
+        clearInterval(interval)
+      }
+    }, 750) // 每750ms更新一次进度
+  }
+  
+  generationProgress.value = progressSteps.value[0]
+  simulateProgress()
+  
   setTimeout(() => {
     const mockImages = [
       'https://images.unsplash.com/photo-1594736797933-d0d3023055e0?w=400&h=600&fit=crop',
@@ -673,6 +696,7 @@ onMounted(() => {
 
           <div class="mt-4 text-center">
             <p class="text-gray-500 text-sm">预计生成时间：2-3分钟</p>
+            <p v-if="isGenerating" class="text-primary-400 text-sm mt-2 font-medium">{{ generationProgress }}</p>
           </div>
         </div>
       </div>
@@ -686,7 +710,8 @@ onMounted(() => {
 
           <div v-if="isGenerating" class="text-center py-16">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-            <p class="text-gray-400">正在生成姿势图...</p>
+            <p class="text-gray-400 mb-2">正在生成姿势图</p>
+            <p class="text-primary-400 text-sm font-medium">{{ generationProgress }}</p>
           </div>
 
           <div v-else-if="generatedResults.length > 0" class="grid grid-cols-3 gap-3">

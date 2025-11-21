@@ -10,6 +10,15 @@ const selectedImages = ref<any[]>([])
 const uploadedImages = ref<any[]>([])
 const generatedResults = ref<any[]>([])
 const isGenerating = ref(false)
+const generationProgress = ref('')
+const progressSteps = ref([
+  '正在处理...',
+  '处理中...',
+  '优化中...',
+  '精修中...',
+  '即将完成...'
+])
+const currentStep = ref(0)
 const showImageSelection = ref(false)
 
 // Image gallery options
@@ -75,8 +84,23 @@ const generateUpscaledImages = () => {
   }
 
   isGenerating.value = true
+  currentStep.value = 0
   
-  // 模拟生成过程
+  // 模拟生成过程 - 分步进度
+  const simulateProgress = () => {
+    const interval = setInterval(() => {
+      if (currentStep.value < progressSteps.value.length - 1) {
+        currentStep.value++
+        generationProgress.value = progressSteps.value[currentStep.value]
+      } else {
+        clearInterval(interval)
+      }
+    }, 800) // 每800ms更新一次进度
+  }
+  
+  generationProgress.value = progressSteps.value[0]
+  simulateProgress()
+  
   setTimeout(() => {
     generatedResults.value = allImages.map((img) => ({
       id: `result-${img.id}`,
@@ -85,6 +109,8 @@ const generateUpscaledImages = () => {
       name: img.name || `放大图片 ${img.id}`
     }))
     isGenerating.value = false
+    generationProgress.value = ''
+    currentStep.value = 0
   }, 4000)
 }
 
@@ -203,6 +229,7 @@ onMounted(() => {
 
           <div class="mt-4 text-center">
             <p class="text-gray-500 text-sm">预计处理时间：1-2分钟/张</p>
+            <p v-if="isGenerating" class="text-primary-400 text-sm mt-2 font-medium">{{ generationProgress }}</p>
           </div>
         </div>
       </div>
@@ -216,7 +243,8 @@ onMounted(() => {
 
           <div v-if="isGenerating" class="text-center py-16">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-            <p class="text-gray-400">正在处理图片...</p>
+            <p class="text-gray-400 mb-2">正在处理图片</p>
+            <p class="text-primary-400 text-sm font-medium">{{ generationProgress }}</p>
           </div>
 
           <div v-else-if="generatedResults.length > 0" class="space-y-6">
