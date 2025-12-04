@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Mail, Lock, User, Eye, EyeOff, Loader2, Check, X, Gift } from 'lucide-vue-next'
-import { authService, type SignUpCredentials } from '../services/auth'
+import { Mail, Lock, User as UserIcon, Eye, EyeOff, Loader2, Check, X, Gift, Info } from 'lucide-vue-next'
+import { authService, type SignUpCredentials, type User } from '../services/auth'
 import { invitationService } from '../services/invitationService'
 
 const router = useRouter()
@@ -17,6 +17,8 @@ const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const isLoading = ref(false)
 const error = ref('')
+const showEmailVerificationModal = ref(false)
+const registeredUser = ref<User | null>(null)
 
 // Special invitation code info
 const specialInviteInfo = computed(() => {
@@ -93,7 +95,9 @@ const handleSignUp = async () => {
         }
       }
 
-      router.push('/model-generation')
+      // 显示邮箱验证模态框而不是直接跳转
+      registeredUser.value = result.user
+      showEmailVerificationModal.value = true
     } else {
       error.value = result.error || '注册失败'
     }
@@ -106,6 +110,30 @@ const handleSignUp = async () => {
 
 const goToLogin = () => {
   router.push('/login')
+}
+
+const sendVerificationEmail = async () => {
+  if (!registeredUser.value) return
+  
+  try {
+    const result = await authService.sendVerificationEmail(registeredUser.value.id)
+    if (!result.success) {
+      console.error('发送验证邮件失败:', result.error)
+    }
+  } catch (error) {
+    console.error('发送验证邮件时发生错误:', error)
+  }
+}
+
+const skipVerification = () => {
+  showEmailVerificationModal.value = false
+  router.push('/model-generation')
+}
+
+const continueWithVerification = () => {
+  sendVerificationEmail()
+  showEmailVerificationModal.value = false
+  router.push('/model-generation')
 }
 
 onMounted(() => {
@@ -133,7 +161,7 @@ onMounted(() => {
             </label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User class="h-5 w-5 text-gray-400" />
+                <UserIcon class="h-5 w-5 text-gray-400" />
               </div>
               <input
                 id="name"
@@ -267,13 +295,25 @@ onMounted(() => {
                 placeholder="输入邀请码（如有）"
               />
             </div>
-            <div v-if="invitationCode" class="mt-2">
+            <div v-if="invitationCode" class="mt-2 space-y-2">
               <p v-if="specialInviteInfo" class="text-sm text-green-400 font-medium">
                 🎉 {{ specialInviteInfo.description }}
               </p>
               <p v-else class="text-sm text-blue-400">
                 使用邀请码注册，邀请人将获得1000积分奖励
               </p>
+              <!-- 邮箱验证积分提示 -->
+              <div class="bg-gradient-to-r from-blue-500/20 to-primary-500/20 border border-blue-400/30 rounded-lg p-3">
+                <div class="flex items-start space-x-2">
+                  <Info class="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p class="text-sm text-blue-300 font-medium">重要提示</p>
+                    <p class="text-xs text-blue-200 mt-1">
+                      注册后请验证邮箱以获得完整的积分奖励和全部功能权限
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -302,6 +342,55 @@ onMounted(() => {
             </button>
           </p>
         </div>
+      </div>
+    </div>
+
+    <!-- 邮箱验证模态框 -->
+    <div v-if="showEmailVerificationModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="bg-gray-900 rounded-2xl shadow-2xl p-8 border border-gray-800 max-w-md w-full">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail class="h-8 w-8 text-white" />
+          </div>
+          <h2 class="text-2xl font-bold text-white mb-2">注册成功！</h2>
+          <p class="text-gray-300 mb-6">
+            欢迎 <span class="text-primary-400 font-medium">{{ registeredUser?.name }}</span> 加入 Quickimage.ai
+          </p>
+        </div>
+
+        <div class="bg-gradient-to-r from-blue-500/10 to-primary-500/10 border border-blue-400/20 rounded-lg p-4 mb-6">
+          <div class="flex items-start space-x-3">
+            <Check class="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p class="text-sm text-blue-300 font-medium">验证邮箱获得更多积分</p>
+              <p class="text-xs text-blue-200 mt-1">
+                我们已向 <span class="font-medium">{{ registeredUser?.email }}</span> 发送验证邮件
+              </p>
+              <p class="text-xs text-blue-200 mt-1">
+                验证后可获得额外积分奖励，享受完整功能权限
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <button
+            @click="continueWithVerification"
+            class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium py-3 px-4 rounded-lg transition-all hover:scale-105 shadow-lg shadow-primary-500/25"
+          >
+            发送验证邮件并继续
+          </button>
+          <button
+            @click="skipVerification"
+            class="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 font-medium py-3 px-4 rounded-lg transition-colors"
+          >
+            稍后验证，先体验功能
+          </button>
+        </div>
+
+        <p class="text-xs text-gray-400 text-center mt-4">
+          您可以稍后在账户设置中完成邮箱验证
+        </p>
       </div>
     </div>
   </div>

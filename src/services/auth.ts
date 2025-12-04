@@ -4,6 +4,7 @@ export interface User {
   name: string
   createdAt: Date
   credits?: number
+  emailVerified?: boolean
 }
 
 export interface LoginCredentials {
@@ -39,14 +40,16 @@ const MOCK_USERS: User[] = [
     email: 'demo@quickimage.ai',
     name: '演示用户',
     createdAt: new Date('2024-01-01'),
-    credits: 277
+    credits: 277,
+    emailVerified: true
   },
   {
     id: '2',
     email: 'test@example.com',
     name: '测试用户',
     createdAt: new Date('2024-01-15'),
-    credits: 150
+    credits: 150,
+    emailVerified: false
   }
 ]
 
@@ -143,7 +146,8 @@ class AuthService {
       email,
       name,
       createdAt: new Date(),
-      credits: 50 // New users get 50 credits
+      credits: 50, // New users get 50 credits
+      emailVerified: false // New users need to verify email
     }
 
     MOCK_USERS.push(newUser)
@@ -252,6 +256,54 @@ class AuthService {
         this.saveUserToStorage(this.currentUser)
       }
     }
+  }
+
+  async sendVerificationEmail(userId: string): Promise<AuthResponse> {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    if (!this.currentUser || this.currentUser.id !== userId) {
+      return { success: false, error: '用户未登录' }
+    }
+
+    if (this.currentUser.emailVerified) {
+      return { success: false, error: '邮箱已经验证过了' }
+    }
+
+    // 模拟发送验证邮件
+    console.log(`发送验证邮件到: ${this.currentUser.email}`)
+    
+    return { success: true, user: this.currentUser }
+  }
+
+  async verifyEmail(userId: string, verificationCode: string): Promise<AuthResponse> {
+    await new Promise(resolve => setTimeout(resolve, 800))
+
+    if (!this.currentUser || this.currentUser.id !== userId) {
+      return { success: false, error: '用户未登录' }
+    }
+
+    if (this.currentUser.emailVerified) {
+      return { success: false, error: '邮箱已经验证过了' }
+    }
+
+    // 模拟验证码验证（实际应用中应该验证真实的验证码）
+    if (verificationCode !== '123456') {
+      return { success: false, error: '验证码错误' }
+    }
+
+    // 更新用户验证状态
+    const userIndex = MOCK_USERS.findIndex(u => u.id === userId)
+    if (userIndex !== -1 && MOCK_USERS[userIndex]) {
+      MOCK_USERS[userIndex].emailVerified = true
+      MOCK_USERS[userIndex].credits = (MOCK_USERS[userIndex].credits || 0) + 30 // 验证邮箱奖励30积分
+      
+      this.currentUser = MOCK_USERS[userIndex]
+      this.saveUserToStorage(this.currentUser)
+      
+      return { success: true, user: this.currentUser }
+    }
+
+    return { success: false, error: '用户数据更新失败' }
   }
 
   private isValidEmail(email: string): boolean {
