@@ -45,14 +45,28 @@ export interface PoseHistoryItem extends BaseHistoryItem {
   aspectRatio: any | null  // 选择的图片比例
 }
 
+// 拼装生成历史记录
+export interface CollageHistoryItem extends BaseHistoryItem {
+  type: 'collage'
+  referenceImages: Array<{
+    id: string
+    url: string
+    order: number  // 1-4
+  }>
+  photoType: any | null  // 选择的照片类型模板
+  generationCount: number
+  aspectRatio: any | null  // 选择的图片比例
+}
+
 // 联合类型
-export type HistoryItem = ClothingHistoryItem | PoseHistoryItem
+export type HistoryItem = ClothingHistoryItem | PoseHistoryItem | CollageHistoryItem
 
 // 历史记录类型枚举
 export enum HistoryType {
   CLOTHING = 'clothing',
-  POSE = 'pose'
+  POSE = 'pose',
+  COLLAGE = 'collage'
 }
 
 // 历史记录类型字符串
-export type HistoryTypeString = 'clothing' | 'pose'
+export type HistoryTypeString = 'clothing' | 'pose' | 'collage'

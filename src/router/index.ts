@@ -48,6 +48,11 @@ const router = createRouter({
       name: 'upscale-generation',
       component: () => import('../views/UpscaleView.vue')
     },
+    {
+      path: '/collage-generation',
+      name: 'collage-generation',
+      component: () => import('../views/CollageGenerationView.vue')
+    },
     // 保留项目管理功能
     {
       path: '/projects',

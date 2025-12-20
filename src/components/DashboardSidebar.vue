@@ -2,14 +2,15 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authService } from '../services/auth'
-import { 
+import {
   User,
   Camera,
   Zap,
-  Image, 
-  Settings, 
-  CreditCard, 
-  LogOut, 
+  Grid3x3,
+  Image,
+  Settings,
+  CreditCard,
+  LogOut,
   Sparkles,
   X,
   Gift
@@ -66,6 +67,13 @@ const navigationItems = ref([
     active: false
   },
   {
+    name: '搭配图',
+    shortName: '搭配',
+    path: '/collage-generation',
+    icon: Grid3x3,
+    active: false
+  },
+  {
     name: '图片库',
     shortName: '图库',
     path: '/gallery',
@@ -101,7 +109,7 @@ const isActiveRoute = (path: string) => {
 
 const handleNavigation = (path: string) => {
   // 已实现的功能直接跳转
-  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/gallery' || path === '/settings' || path === '/subscription' || path === '/invitation') {
+  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/collage-generation' || path === '/gallery' || path === '/settings' || path === '/subscription' || path === '/invitation') {
     router.push(path)
   } else {
     // For now, show placeholder for non-implemented routes
