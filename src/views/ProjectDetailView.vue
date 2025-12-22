@@ -593,14 +593,14 @@ const generateSingleImage = () => {
     const interval = setInterval(() => {
       if (currentStep.value < progressSteps.value.length - 1) {
         currentStep.value++
-        generationProgress.value = progressSteps.value[currentStep.value]
+        generationProgress.value = progressSteps.value[currentStep.value] ?? ''
       } else {
         clearInterval(interval)
       }
     }, 1000) // 每1000ms更新一次进度
   }
-  
-  generationProgress.value = progressSteps.value[0]
+
+  generationProgress.value = progressSteps.value[0] ?? ''
   simulateProgress()
   
   // 模拟生成过程
@@ -719,14 +719,14 @@ const generateBatchImages = () => {
     const interval = setInterval(() => {
       if (currentStep.value < progressSteps.value.length - 1) {
         currentStep.value++
-        generationProgress.value = progressSteps.value[currentStep.value]
+        generationProgress.value = progressSteps.value[currentStep.value] ?? ''
       } else {
         clearInterval(interval)
       }
     }, 1000)
   }
-  
-  generationProgress.value = progressSteps.value[0]
+
+  generationProgress.value = progressSteps.value[0] ?? ''
   simulateProgress()
   
   // 模拟批量生成过程

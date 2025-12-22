@@ -391,7 +391,7 @@ const closeResultsModal = () => {
 }
 
 const nextImage = () => {
-  if (selectedHistoryItem.value && currentImageIndex.value < selectedHistoryItem.value.results.length - 1) {
+  if (currentImageIndex.value < currentResults.value.length - 1) {
     currentImageIndex.value++
   }
 }

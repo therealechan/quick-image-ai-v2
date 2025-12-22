@@ -228,14 +228,14 @@ const generatePoseImages = () => {
     const interval = setInterval(() => {
       if (currentStep.value < progressSteps.value.length - 1) {
         currentStep.value++
-        generationProgress.value = progressSteps.value[currentStep.value]
+        generationProgress.value = progressSteps.value[currentStep.value] ?? ''
       } else {
         clearInterval(interval)
       }
     }, 750) // 每750ms更新一次进度
   }
-  
-  generationProgress.value = progressSteps.value[0]
+
+  generationProgress.value = progressSteps.value[0] ?? ''
   simulateProgress()
   
   setTimeout(() => {
