@@ -262,6 +262,18 @@ const filteredHistoryItems = computed(() => {
   return filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 })
 
+const currentResults = computed(() => {
+  if (!selectedHistoryItem.value) return []
+
+  if (selectedHistoryItem.value.type === 'video') {
+    const videoItem = selectedHistoryItem.value as VideoHistoryItem
+    return videoItem.result ? [{ url: videoItem.result.url, id: videoItem.result.id }] : []
+  }
+
+  const itemWithResults = selectedHistoryItem.value as ClothingHistoryItem | PoseHistoryItem
+  return itemWithResults.results || []
+})
+
 const formatTime = (date: Date) => {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -322,10 +334,14 @@ const useHistoryItem = (item: HistoryItem) => {
       `模特：${poseItem.model || poseItem.uploadedModel ? '1个' : '无'}\n` +
       `姿势：${poseItem.selectedPose?.name || '无'}\n`
   }
-  
-  confirmMessage += `Prompt：${item.prompt.slice(0, 100)}${item.prompt.length > 100 ? '...' : ''}\n\n` +
+
+  const promptText = item.type === 'video'
+    ? (item as VideoHistoryItem).description
+    : 'prompt' in item ? item.prompt : ''
+
+  confirmMessage += `Prompt：${promptText.slice(0, 100)}${promptText.length > 100 ? '...' : ''}\n\n` +
     `这将覆盖当前的所有选择设置。`
-  
+
   const confirmed = confirm(confirmMessage)
   
   if (confirmed) {
@@ -349,10 +365,20 @@ const toggleCollapse = () => {
 }
 
 const viewResults = (item: HistoryItem) => {
-  if (item.results.length === 0) {
-    alert('该记录暂无生成结果')
-    return
+  if (item.type === 'video') {
+    const videoItem = item as VideoHistoryItem
+    if (!videoItem.result) {
+      alert('该记录暂无生成结果')
+      return
+    }
+  } else {
+    const itemWithResults = item as ClothingHistoryItem | PoseHistoryItem
+    if (!itemWithResults.results || itemWithResults.results.length === 0) {
+      alert('该记录暂无生成结果')
+      return
+    }
   }
+
   selectedHistoryItem.value = item
   currentImageIndex.value = 0
   showResultsModal.value = true
@@ -638,8 +664,8 @@ onMounted(() => {
               </template>
 
               <!-- Results preview (fallback for all types) -->
-              <div v-if="item.type !== 'video' && item.results && item.results.length > 0" class="aspect-square rounded overflow-hidden">
-                <img :src="item.results[0]?.url || ''" alt="Result" class="w-full h-full object-cover" />
+              <div v-if="item.type !== 'video' && (item as ClothingHistoryItem | PoseHistoryItem).results && (item as ClothingHistoryItem | PoseHistoryItem).results.length > 0" class="aspect-square rounded overflow-hidden">
+                <img :src="(item as ClothingHistoryItem | PoseHistoryItem).results[0]?.url || ''" alt="Result" class="w-full h-full object-cover" />
               </div>
             </div>
 
@@ -653,12 +679,12 @@ onMounted(() => {
               <div class="text-xs text-gray-500">
                 <template v-if="item.type === 'clothing'">
                   {{ (item as ClothingHistoryItem).models.length }}个模特 • {{ (item as ClothingHistoryItem).tops.length + (item as ClothingHistoryItem).bottoms.length }}件服装
-                  {{ item.results.length > 0 ? ` • ${item.results.length}张结果` : '' }}
+                  {{ (item as ClothingHistoryItem).results.length > 0 ? ` • ${(item as ClothingHistoryItem).results.length}张结果` : '' }}
                 </template>
                 <template v-else-if="item.type === 'pose'">
                   {{ (item as PoseHistoryItem).model || (item as PoseHistoryItem).uploadedModel ? '1个模特' : '无模特' }}
                   {{ (item as PoseHistoryItem).selectedPose ? ` • ${(item as PoseHistoryItem).selectedPose.name}` : '' }}
-                  {{ item.results.length > 0 ? ` • ${item.results.length}张结果` : '' }}
+                  {{ (item as PoseHistoryItem).results.length > 0 ? ` • ${(item as PoseHistoryItem).results.length}张结果` : '' }}
                 </template>
                 <template v-else-if="item.type === 'video'">
                   {{ (item as VideoHistoryItem).images.length }}张图片 • {{ (item as VideoHistoryItem).aspectRatio.name }}
@@ -692,7 +718,7 @@ onMounted(() => {
                 <!-- Action Buttons -->
                 <div class="flex items-center space-x-1">
                   <button
-                    v-if="item.results.length > 0"
+                    v-if="(item.type === 'video' && (item as VideoHistoryItem).result) || (item.type !== 'video' && (item as ClothingHistoryItem | PoseHistoryItem).results && (item as ClothingHistoryItem | PoseHistoryItem).results.length > 0)"
                     @click="viewResults(item)"
                     class="p-1.5 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors"
                     title="查看生成结果"
@@ -739,12 +765,12 @@ onMounted(() => {
             'relative w-8 h-8 rounded-md overflow-hidden cursor-pointer transition-all hover:scale-105 hover:ring-1 hover:ring-primary-400 mx-auto',
             `history-item-${index}`
           ]"
-          :title="`${formatTime(item.timestamp)} - ${item.prompt.slice(0, 30)}...`"
+          :title="`${formatTime(item.timestamp)} - ${item.type === 'video' ? (item as VideoHistoryItem).description.slice(0, 30) : (item as any).prompt.slice(0, 30)}...`"
         >
           <!-- Show result image if available, otherwise model image -->
           <img
-            v-if="item.results.length > 0"
-            :src="item.results[0]?.url || ''"
+            v-if="item.type !== 'video' && (item as ClothingHistoryItem | PoseHistoryItem).results && (item as ClothingHistoryItem | PoseHistoryItem).results.length > 0"
+            :src="(item as ClothingHistoryItem | PoseHistoryItem).results[0]?.url || ''"
             :alt="`历史记录 ${index + 1}`"
             class="w-full h-full object-cover"
             @error="onImageError"
@@ -816,7 +842,7 @@ onMounted(() => {
             <Eye class="h-5 w-5 text-blue-400" />
             <div>
               <h3 class="text-lg font-semibold text-white">生成结果</h3>
-              <p class="text-sm text-gray-400">{{ formatTime(selectedHistoryItem.timestamp) }} • {{ selectedHistoryItem.results.length }}张图片</p>
+              <p class="text-sm text-gray-400">{{ formatTime(selectedHistoryItem.timestamp) }} • {{ currentResults.length }}张图片</p>
             </div>
           </div>
           <button
@@ -833,23 +859,23 @@ onMounted(() => {
           <div class="flex-1 flex items-center justify-center p-6 bg-gray-950">
             <div class="relative max-w-full max-h-full">
               <img
-                :src="selectedHistoryItem.results[currentImageIndex]?.url"
+                :src="currentResults[currentImageIndex]?.url"
                 :alt="`Generated result ${currentImageIndex + 1}`"
                 class="max-w-full max-h-full object-contain rounded-lg"
                 @error="onImageError"
               />
-              
+
               <!-- Navigation Arrows -->
               <button
-                v-if="selectedHistoryItem.results.length > 1 && currentImageIndex > 0"
+                v-if="currentResults.length > 1 && currentImageIndex > 0"
                 @click="prevImage"
                 class="absolute left-2 top-1/2 transform -translate-y-1/2 p-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full transition-all"
               >
                 <ChevronLeft class="h-5 w-5" />
               </button>
-              
+
               <button
-                v-if="selectedHistoryItem.results.length > 1 && currentImageIndex < selectedHistoryItem.results.length - 1"
+                v-if="currentResults.length > 1 && currentImageIndex < currentResults.length - 1"
                 @click="nextImage"
                 class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full transition-all"
               >
@@ -858,12 +884,12 @@ onMounted(() => {
 
               <!-- Image Counter -->
               <div class="absolute bottom-4 left-4 px-3 py-1 bg-black bg-opacity-70 text-white text-sm rounded-full">
-                {{ currentImageIndex + 1 }} / {{ selectedHistoryItem.results.length }}
+                {{ currentImageIndex + 1 }} / {{ currentResults.length }}
               </div>
 
               <!-- Download Button -->
               <button
-                @click="downloadImage(selectedHistoryItem.results[currentImageIndex]?.url || '', currentImageIndex)"
+                @click="downloadImage(currentResults[currentImageIndex]?.url || '', currentImageIndex)"
                 class="absolute bottom-4 right-4 p-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full transition-colors"
                 :title="'下载图片'"
               >
@@ -891,16 +917,18 @@ onMounted(() => {
                   <div><span class="text-gray-500">数量:</span> {{ (selectedHistoryItem as PoseHistoryItem).generationCount }}张</div>
                 </template>
                 <div><span class="text-gray-500">Prompt:</span></div>
-                <p class="text-gray-300 text-xs leading-relaxed bg-gray-700 p-2 rounded">{{ selectedHistoryItem.prompt }}</p>
+                <p class="text-gray-300 text-xs leading-relaxed bg-gray-700 p-2 rounded">
+                  {{ selectedHistoryItem.type === 'video' ? (selectedHistoryItem as VideoHistoryItem).description : (selectedHistoryItem as any).prompt }}
+                </p>
               </div>
             </div>
 
             <!-- Thumbnails Grid -->
             <div class="flex-1 overflow-y-auto scrollbar-hide p-4">
-              <h4 class="text-sm font-semibold text-white mb-3">所有结果 ({{ selectedHistoryItem.results.length }})</h4>
+              <h4 class="text-sm font-semibold text-white mb-3">所有结果 ({{ currentResults.length }})</h4>
               <div class="grid grid-cols-2 gap-2">
                 <div
-                  v-for="(result, index) in selectedHistoryItem.results"
+                  v-for="(result, index) in currentResults"
                   :key="result.id"
                   @click="currentImageIndex = index"
                   :class="[

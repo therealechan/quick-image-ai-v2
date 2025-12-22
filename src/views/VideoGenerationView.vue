@@ -60,6 +60,8 @@ const hasAspectRatioWarning = computed(() => {
   const tolerance = 0.05 // 5% 容差
   const firstRatio = ratios[0]
 
+  if (!firstRatio) return false
+
   return !ratios.every(ratio => Math.abs(ratio - firstRatio) < tolerance)
 })
 
@@ -127,7 +129,10 @@ const generateSmartDescription = async () => {
       '时尚大片质感，模特优雅转身，展示服装搭配，电影级打光，精致构图'
     ]
 
-    description.value = descriptions[Math.floor(Math.random() * descriptions.length)]
+    const randomDescription = descriptions[Math.floor(Math.random() * descriptions.length)]
+    if (randomDescription) {
+      description.value = randomDescription
+    }
   } catch (error) {
     console.error('生成描述失败:', error)
     alert('生成描述失败，请重试')
@@ -205,10 +210,10 @@ const completeGeneration = (taskId: string) => {
   const history: VideoHistoryItem[] = JSON.parse(localStorage.getItem('videoGenerationHistory') || '[]')
   const itemIndex = history.findIndex(item => item.id === taskId)
 
-  if (itemIndex !== -1) {
+  if (itemIndex !== -1 && history[itemIndex]) {
     // Mock 生成的视频结果
-    history[itemIndex].status = 'completed'
-    history[itemIndex].result = {
+    history[itemIndex]!.status = 'completed'
+    history[itemIndex]!.result = {
       id: `video-${taskId}`,
       url: 'https://www.w3schools.com/html/mov_bbb.mp4', // Mock 视频 URL
       thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
