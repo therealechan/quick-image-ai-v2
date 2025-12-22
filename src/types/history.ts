@@ -1,13 +1,32 @@
 // 生成状态枚举
 export enum GenerationStatus {
   PENDING = 'pending',
-  PROCESSING = 'processing', 
+  PROCESSING = 'processing',
   COMPLETED = 'completed',
   FAILED = 'failed'
 }
 
 // 生成状态类型
 export type GenerationStatusType = 'pending' | 'processing' | 'completed' | 'failed'
+
+// 上传图片接口（用于视频生成）
+export interface UploadedImage {
+  id: string
+  url: string              // 图片 URL
+  file?: File             // 原始文件（上传时）
+  width: number
+  height: number
+  size: number            // 文件大小（bytes）
+  aspectRatio: number     // 宽高比
+}
+
+// 视频比例接口
+export interface AspectRatio {
+  id: string
+  name: string
+  width: number
+  height: number
+}
 
 // 基础历史记录接口
 export interface BaseHistoryItem {
@@ -58,15 +77,36 @@ export interface CollageHistoryItem extends BaseHistoryItem {
   aspectRatio: any | null  // 选择的图片比例
 }
 
+// 视频生成历史记录
+export interface VideoHistoryItem {
+  id: string
+  type: 'video'
+  timestamp: Date
+  images: UploadedImage[]  // 上传的 2-4 张图片
+  description: string      // 场景描述
+  negativePrompt: string   // 负面提示
+  aspectRatio: AspectRatio // 视频比例
+  highQuality: boolean     // 是否高清
+  result?: {               // 生成的视频
+    id: string
+    url: string
+    thumbnail: string      // 视频缩略图
+    duration: number       // 视频时长（秒）
+  }
+  isFavorite: boolean
+  status: GenerationStatusType
+}
+
 // 联合类型
-export type HistoryItem = ClothingHistoryItem | PoseHistoryItem | CollageHistoryItem
+export type HistoryItem = ClothingHistoryItem | PoseHistoryItem | CollageHistoryItem | VideoHistoryItem
 
 // 历史记录类型枚举
 export enum HistoryType {
   CLOTHING = 'clothing',
   POSE = 'pose',
-  COLLAGE = 'collage'
+  COLLAGE = 'collage',
+  VIDEO = 'video'
 }
 
 // 历史记录类型字符串
-export type HistoryTypeString = 'clothing' | 'pose' | 'collage'
+export type HistoryTypeString = 'clothing' | 'pose' | 'collage' | 'video'

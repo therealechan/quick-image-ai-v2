@@ -7,6 +7,7 @@ import {
   Camera,
   Zap,
   Grid3x3,
+  Video,
   Image,
   Settings,
   CreditCard,
@@ -74,6 +75,13 @@ const navigationItems = ref([
     active: false
   },
   {
+    name: '视频',
+    shortName: '视频',
+    path: '/video-generation',
+    icon: Video,
+    active: false
+  },
+  {
     name: '图片库',
     shortName: '图库',
     path: '/gallery',
@@ -109,7 +117,7 @@ const isActiveRoute = (path: string) => {
 
 const handleNavigation = (path: string) => {
   // 已实现的功能直接跳转
-  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/collage-generation' || path === '/gallery' || path === '/settings' || path === '/subscription' || path === '/invitation') {
+  if (path === '/model-generation' || path === '/pose-generation' || path === '/upscale' || path === '/collage-generation' || path === '/video-generation' || path === '/gallery' || path === '/settings' || path === '/subscription' || path === '/invitation') {
     router.push(path)
   } else {
     // For now, show placeholder for non-implemented routes
@@ -184,7 +192,7 @@ const goToHome = () => {
           </div>
           <div class="space-y-1">
             <button
-              v-for="item in navigationItems.slice(0, 3)"
+              v-for="item in navigationItems.slice(0, 4)"
               :key="item.path"
               @click="handleNavigation(item.path)"
               :class="[
@@ -222,7 +230,7 @@ const goToHome = () => {
           </div>
           <div class="space-y-1">
             <button
-              v-for="item in navigationItems.slice(3)"
+              v-for="item in navigationItems.slice(4)"
               :key="item.path"
               @click="handleNavigation(item.path)"
               :class="[

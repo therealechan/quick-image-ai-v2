@@ -53,6 +53,11 @@ const router = createRouter({
       name: 'collage-generation',
       component: () => import('../views/CollageGenerationView.vue')
     },
+    {
+      path: '/video-generation',
+      name: 'video-generation',
+      component: () => import('../views/VideoGenerationView.vue')
+    },
     // 保留项目管理功能
     {
       path: '/projects',

@@ -12,6 +12,9 @@ export interface Album {
 export interface GalleryImage {
   id: string
   url: string
+  type?: 'image' | 'video'  // 类型：图片或视频
+  thumbnail?: string         // 视频缩略图
+  duration?: number          // 视频时长（秒）
   title: string
   description?: string
   category: string

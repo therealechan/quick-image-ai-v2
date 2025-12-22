@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Clock, Star, Trash2, RotateCcw, ChevronLeft, ChevronRight, Eye, Download, X, Loader2, Check } from 'lucide-vue-next'
-import type { HistoryItem, ClothingHistoryItem, PoseHistoryItem, HistoryTypeString, GenerationStatusType } from '../types/history'
+import { Clock, Star, Trash2, RotateCcw, ChevronLeft, ChevronRight, Eye, Download, X, Loader2, Check, Play } from 'lucide-vue-next'
+import type { HistoryItem, ClothingHistoryItem, PoseHistoryItem, VideoHistoryItem, HistoryTypeString, GenerationStatusType } from '../types/history'
 
 const props = defineProps<{
   isCollapsed?: boolean
@@ -132,6 +132,82 @@ const mockPoseHistoryData: PoseHistoryItem[] = [
   }
 ]
 
+// Mock data for video generation
+const mockVideoHistoryData: VideoHistoryItem[] = [
+  {
+    id: 'v1',
+    type: 'video',
+    timestamp: new Date(Date.now() - 1000 * 60 * 20), // 20 minutes ago
+    images: [
+      {
+        id: 'img1',
+        url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
+        width: 800,
+        height: 1200,
+        size: 2500000,
+        aspectRatio: 0.67
+      },
+      {
+        id: 'img2',
+        url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop',
+        width: 800,
+        height: 1200,
+        size: 2300000,
+        aspectRatio: 0.67
+      }
+    ],
+    description: '时尚模特展示多套服装，优雅走动，专业T台步伐，柔和打光，现代简约背景',
+    negativePrompt: '变形、模糊、奇怪光影',
+    aspectRatio: { id: '9:16', name: '9:16', width: 9, height: 16 },
+    highQuality: true,
+    result: {
+      id: 'video-v1',
+      url: 'https://www.w3schools.com/html/mov_bbb.mp4',
+      thumbnail: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop',
+      duration: 15
+    },
+    isFavorite: true,
+    status: 'completed'
+  },
+  {
+    id: 'v2',
+    type: 'video',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+    images: [
+      {
+        id: 'img3',
+        url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
+        width: 800,
+        height: 1200,
+        size: 2800000,
+        aspectRatio: 0.67
+      },
+      {
+        id: 'img4',
+        url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=600&fit=crop',
+        width: 800,
+        height: 1200,
+        size: 2600000,
+        aspectRatio: 0.67
+      },
+      {
+        id: 'img5',
+        url: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=600&fit=crop',
+        width: 800,
+        height: 1200,
+        size: 2400000,
+        aspectRatio: 0.67
+      }
+    ],
+    description: '商务人士专业形象，从站立到坐姿的自然过渡，办公室环境，自信专业气质',
+    negativePrompt: '',
+    aspectRatio: { id: '16:9', name: '16:9', width: 16, height: 9 },
+    highQuality: false,
+    isFavorite: false,
+    status: 'processing'
+  }
+]
+
 const filteredHistoryItems = computed(() => {
   let filtered = historyItems.value
 
@@ -139,23 +215,34 @@ const filteredHistoryItems = computed(() => {
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(item => {
-      if (item.prompt.toLowerCase().includes(query)) return true
-      
+      // For video generation, search in description
+      if (item.type === 'video') {
+        const videoItem = item as VideoHistoryItem
+        return videoItem.description.toLowerCase().includes(query)
+      }
+
+      // For clothing generation
       if (item.type === 'clothing') {
         const clothingItem = item as ClothingHistoryItem
         return (
+          clothingItem.prompt.toLowerCase().includes(query) ||
           clothingItem.models.some(m => m.name.toLowerCase().includes(query)) ||
           clothingItem.tops.some(t => t.name.toLowerCase().includes(query)) ||
           clothingItem.bottoms.some(b => b.name.toLowerCase().includes(query))
         )
-      } else if (item.type === 'pose') {
+      }
+
+      // For pose generation
+      if (item.type === 'pose') {
         const poseItem = item as PoseHistoryItem
         return (
+          poseItem.prompt.toLowerCase().includes(query) ||
           poseItem.model?.name.toLowerCase().includes(query) ||
           poseItem.selectedPose?.name.toLowerCase().includes(query) ||
           poseItem.promptTemplate?.name.toLowerCase().includes(query)
         )
       }
+
       return false
     })
   }
@@ -166,7 +253,7 @@ const filteredHistoryItems = computed(() => {
       filtered = filtered.filter(item => item.isFavorite)
       break
     case 'recent':
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         (Date.now() - item.timestamp.getTime()) < 1000 * 60 * 60 * 24 // Last 24 hours
       )
       break
@@ -314,11 +401,21 @@ const onImageError = (event: Event) => {
 }
 
 const getStorageKey = () => {
-  return currentHistoryType.value === 'clothing' ? 'modelGenerationHistory' : 'poseGenerationHistory'
+  switch (currentHistoryType.value) {
+    case 'clothing': return 'modelGenerationHistory'
+    case 'pose': return 'poseGenerationHistory'
+    case 'video': return 'videoGenerationHistory'
+    default: return 'modelGenerationHistory'
+  }
 }
 
 const getMockData = () => {
-  return currentHistoryType.value === 'clothing' ? mockClothingHistoryData : mockPoseHistoryData
+  switch (currentHistoryType.value) {
+    case 'clothing': return mockClothingHistoryData
+    case 'pose': return mockPoseHistoryData
+    case 'video': return mockVideoHistoryData
+    default: return mockClothingHistoryData
+  }
 }
 
 const saveToLocalStorage = () => {
@@ -488,10 +585,10 @@ onMounted(() => {
               <template v-else-if="item.type === 'pose'">
                 <!-- Model -->
                 <div v-if="(item as PoseHistoryItem).model || (item as PoseHistoryItem).uploadedModel" class="aspect-square rounded overflow-hidden relative">
-                  <img 
-                    :src="(item as PoseHistoryItem).model?.thumbnail || (item as PoseHistoryItem).uploadedModel" 
-                    :alt="(item as PoseHistoryItem).model?.name || '上传模特'" 
-                    class="w-full h-full object-cover" 
+                  <img
+                    :src="(item as PoseHistoryItem).model?.thumbnail || (item as PoseHistoryItem).uploadedModel"
+                    :alt="(item as PoseHistoryItem).model?.name || '上传模特'"
+                    class="w-full h-full object-cover"
                   />
                   <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 truncate">
                     {{ (item as PoseHistoryItem).model?.name || '上传模特' }}
@@ -499,10 +596,10 @@ onMounted(() => {
                 </div>
                 <!-- Pose -->
                 <div v-if="(item as PoseHistoryItem).selectedPose" class="aspect-square rounded overflow-hidden relative">
-                  <img 
-                    :src="(item as PoseHistoryItem).selectedPose.thumbnail" 
-                    :alt="(item as PoseHistoryItem).selectedPose.name" 
-                    class="w-full h-full object-cover" 
+                  <img
+                    :src="(item as PoseHistoryItem).selectedPose.thumbnail"
+                    :alt="(item as PoseHistoryItem).selectedPose.name"
+                    class="w-full h-full object-cover"
                   />
                   <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 truncate">
                     {{ (item as PoseHistoryItem).selectedPose.name }}
@@ -513,17 +610,45 @@ onMounted(() => {
                   <span class="text-xs text-gray-400">{{ (item as PoseHistoryItem).aspectRatio.name }}</span>
                 </div>
               </template>
-              
-              <!-- Results preview -->
-              <div v-if="item.results.length > 0" class="aspect-square rounded overflow-hidden">
+
+              <!-- For video generation -->
+              <template v-else-if="item.type === 'video'">
+                <!-- Source Images -->
+                <div
+                  v-for="(img, idx) in (item as VideoHistoryItem).images.slice(0, 3)"
+                  :key="img.id"
+                  class="aspect-square rounded overflow-hidden relative"
+                >
+                  <img :src="img.url" :alt="`图片 ${idx + 1}`" class="w-full h-full object-cover" />
+                  <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 truncate">
+                    图 {{ idx + 1 }}
+                  </div>
+                </div>
+                <!-- Video result thumbnail (if available) -->
+                <div v-if="(item as VideoHistoryItem).result" class="aspect-square rounded overflow-hidden relative">
+                  <img :src="(item as VideoHistoryItem).result!.thumbnail" alt="视频" class="w-full h-full object-cover" />
+                  <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Play class="w-6 h-6 text-white" />
+                  </div>
+                  <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 flex items-center justify-between">
+                    <span>视频</span>
+                    <span>{{ (item as VideoHistoryItem).result!.duration }}s</span>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Results preview (fallback for all types) -->
+              <div v-if="item.type !== 'video' && item.results && item.results.length > 0" class="aspect-square rounded overflow-hidden">
                 <img :src="item.results[0]?.url || ''" alt="Result" class="w-full h-full object-cover" />
               </div>
             </div>
 
             <!-- Details -->
             <div class="space-y-2">
-              <p class="text-xs text-gray-300 line-clamp-2">{{ item.prompt }}</p>
-              
+              <p class="text-xs text-gray-300 line-clamp-2">
+                {{ item.type === 'video' ? (item as VideoHistoryItem).description : (item as any).prompt }}
+              </p>
+
               <!-- Info Row -->
               <div class="text-xs text-gray-500">
                 <template v-if="item.type === 'clothing'">
@@ -534,6 +659,11 @@ onMounted(() => {
                   {{ (item as PoseHistoryItem).model || (item as PoseHistoryItem).uploadedModel ? '1个模特' : '无模特' }}
                   {{ (item as PoseHistoryItem).selectedPose ? ` • ${(item as PoseHistoryItem).selectedPose.name}` : '' }}
                   {{ item.results.length > 0 ? ` • ${item.results.length}张结果` : '' }}
+                </template>
+                <template v-else-if="item.type === 'video'">
+                  {{ (item as VideoHistoryItem).images.length }}张图片 • {{ (item as VideoHistoryItem).aspectRatio.name }}
+                  {{ (item as VideoHistoryItem).highQuality ? ' • 高清' : '' }}
+                  {{ (item as VideoHistoryItem).result ? ` • ${(item as VideoHistoryItem).result!.duration}秒` : '' }}
                 </template>
               </div>
               
