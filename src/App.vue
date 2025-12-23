@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import NavBar from './components/NavBar.vue'
+import NotificationContainer from './components/NotificationContainer.vue'
 
 const route = useRoute()
 
@@ -16,6 +17,7 @@ const showNavBar = computed(() => {
   <div class="dark bg-gray-950 text-gray-100 min-h-screen font-sans">
     <NavBar v-if="showNavBar" />
     <RouterView />
+    <NotificationContainer />
   </div>
 </template>
 

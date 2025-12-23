@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
 import GenerationHistory from '../components/GenerationHistory.vue'
 import GalleryImportModal from '../components/GalleryImportModal.vue'
+import { useNotification } from '../composables/useNotification'
 import {
   Download,
   Camera,
@@ -47,6 +48,12 @@ const selectedPhotoType = ref<any>(null)
 const customPrompt = ref('')
 const generationCount = ref(3)
 const selectedAspectRatio = ref<any>(null)
+
+// Keep parameters preference
+const keepParametersAfterQueue = ref(true)
+
+// Notification system
+const { success: notifySuccess } = useNotification()
 
 // Queue system
 interface CollageQueueItem {
@@ -425,16 +432,27 @@ const addToQueue = () => {
   generationQueue.value.push(queueItem)
   saveQueueToStorage()
 
-  // 清空当前选择
+  // 始终清空搭配图
   referenceImages.value = []
-  selectedPhotoType.value = null
-  customPrompt.value = ''
-  generationCount.value = 3
 
-  alert(`已添加到队列！当前队列：${generationQueue.value.length} 项`)
+  // 根据开关状态决定是否清空其他参数
+  if (!keepParametersAfterQueue.value) {
+    selectedPhotoType.value = null
+    customPrompt.value = ''
+    generationCount.value = 3
+  }
 
-  // 自动打开队列面板
-  showQueuePanel.value = true
+  notifySuccess(`已添加到队列！当前队列：${generationQueue.value.length} 项`)
+
+  // 自动滚动到顶部（仅在启用"保持参数"时）
+  if (keepParametersAfterQueue.value) {
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      })
+    }, 300)
+  }
 }
 
 const editQueueItem = (item: CollageQueueItem) => {
@@ -532,6 +550,23 @@ const loadQueueFromStorage = () => {
       generationQueue.value = JSON.parse(saved)
     } catch (e) {
       console.error('Failed to load queue from storage:', e)
+    }
+  }
+}
+
+// Keep parameters preference persistence
+const saveKeepParametersPreference = () => {
+  localStorage.setItem('collageKeepParametersPreference', JSON.stringify(keepParametersAfterQueue.value))
+}
+
+const loadKeepParametersPreference = () => {
+  const saved = localStorage.getItem('collageKeepParametersPreference')
+  if (saved) {
+    try {
+      keepParametersAfterQueue.value = JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to load keep parameters preference:', e)
+      keepParametersAfterQueue.value = true
     }
   }
 }
@@ -675,6 +710,9 @@ onMounted(() => {
 
   // 加载队列
   loadQueueFromStorage()
+
+  // 加载保持参数偏好
+  loadKeepParametersPreference()
 
   // 添加粘贴事件监听
   window.addEventListener('paste', handlePaste)
@@ -920,6 +958,26 @@ onUnmounted(() => {
             <p class="text-xs text-gray-500 mt-2">可生成 1-8 张图片</p>
           </div>
 
+          <!-- Keep Parameters Preference -->
+          <div class="mb-8 p-4 bg-gray-800/30 border border-gray-700/50 rounded-lg">
+            <label class="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                v-model="keepParametersAfterQueue"
+                @change="saveKeepParametersPreference"
+                class="w-5 h-5 rounded border-gray-700 bg-gray-900 text-primary-500 focus:ring-primary-500 focus:ring-offset-0 mt-0.5"
+              />
+              <div class="flex-1">
+                <span class="text-sm font-medium text-gray-200 block mb-1">
+                  保持参数设置
+                </span>
+                <p class="text-xs text-gray-400 leading-relaxed">
+                  添加到队列后保留照片类型、Prompt和生成数量（搭配图会清空）
+                </p>
+              </div>
+            </label>
+          </div>
+
           <!-- Action Buttons -->
           <div class="space-y-3">
             <!-- Generate Button -->
@@ -951,23 +1009,17 @@ onUnmounted(() => {
               <Plus class="w-4 h-4" />
               <span>添加到队列</span>
             </button>
-
-            <!-- Queue Panel Toggle -->
-            <button
-              v-if="generationQueue.length > 0"
-              @click="toggleQueuePanel"
-              class="w-full py-3 px-6 rounded-lg font-medium text-sm transition-all flex items-center justify-between bg-gray-800 hover:bg-gray-700 text-white border border-gray-700"
-            >
-              <span>查看队列 ({{ generationQueue.length }})</span>
-              <ChevronDown v-if="!showQueuePanel" class="w-4 h-4" />
-              <ChevronUp v-else class="w-4 h-4" />
-            </button>
           </div>
+        </div>
+      </div>
 
-          <!-- Queue Panel -->
-          <div v-if="showQueuePanel && generationQueue.length > 0" class="mt-6 bg-gray-800 border border-gray-700 rounded-xl p-6">
+      <!-- Right Panel: Results -->
+      <div class="w-1/2 bg-gray-900 overflow-y-auto p-8">
+        <div class="max-w-4xl mx-auto">
+          <!-- Generation Queue Section -->
+          <div v-if="generationQueue.length > 0" class="mb-6 bg-gray-800 border border-gray-700 rounded-xl p-6">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-white">生成队列</h3>
+              <h3 class="text-lg font-semibold text-white">生成队列 ({{ generationQueue.length }})</h3>
               <div class="flex items-center space-x-2">
                 <button
                   @click="generateQueueItems"
@@ -986,7 +1038,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Queue Items -->
-            <div class="space-y-3">
+            <div class="space-y-3 max-h-[400px] overflow-y-auto">
               <div
                 v-for="item in generationQueue"
                 :key="item.id"
@@ -1045,12 +1097,7 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Right Panel: Results -->
-      <div class="w-1/2 bg-gray-900 overflow-y-auto p-8">
-        <div class="max-w-4xl mx-auto">
           <!-- Results Header -->
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-bold text-white">
@@ -1257,6 +1304,30 @@ onUnmounted(() => {
             保存更改
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Floating Quick Queue Toolbar -->
+    <div
+      v-if="referenceImages.length > 0 && keepParametersAfterQueue && !isGenerating"
+      class="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl px-6 py-4 z-40"
+    >
+      <div class="flex flex-col items-center space-y-2">
+        <!-- Info text -->
+        <div class="text-center">
+          <p class="text-white text-sm font-medium">已上传 {{ referenceImages.length }} 张搭配图</p>
+          <p class="text-gray-400 text-xs">点击快速添加到队列，自动回到顶部继续上传</p>
+        </div>
+
+        <!-- Button -->
+        <button
+          @click="addToQueue"
+          :disabled="!canAddToQueue"
+          class="flex items-center space-x-2 px-6 py-3 rounded-lg font-medium text-sm transition-all bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus class="w-5 h-5" />
+          <span>添加到队列</span>
+        </button>
       </div>
     </div>
 
