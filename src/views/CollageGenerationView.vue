@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import DashboardSidebar from '../components/DashboardSidebar.vue'
 import GenerationHistory from '../components/GenerationHistory.vue'
+import GalleryImportModal from '../components/GalleryImportModal.vue'
 import {
   Download,
   Camera,
@@ -12,9 +13,10 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Folder
 } from 'lucide-vue-next'
-import type { CollageHistoryItem } from '../types/history'
+import type { CollageHistoryItem, UploadedImage } from '../types/history'
 
 // Mobile menu state
 const isMobileMenuOpen = ref(false)
@@ -23,7 +25,7 @@ const isMobileMenuOpen = ref(false)
 const isHistoryCollapsed = ref(true)
 const historyRef = ref<InstanceType<typeof GenerationHistory>>()
 
-// Reference images (3-4 images)
+// Reference images (1-4 images)
 interface ReferenceImage {
   id: string
   url: string
@@ -36,6 +38,9 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 
 // Drag and drop state
 const isDragging = ref(false)
+
+// Gallery import modal state
+const showGalleryImport = ref(false)
 
 // Configuration states
 const selectedPhotoType = ref<any>(null)
@@ -163,8 +168,8 @@ const handleFileSelect = (event: Event) => {
   if (!files || files.length === 0) return
 
   // 验证文件数量
-  if (files.length < 3 || files.length > 4) {
-    alert('每组需要3或4张搭配图')
+  if (files.length < 1 || files.length > 4) {
+    alert('每组需要1-4张搭配图')
     return
   }
 
@@ -206,6 +211,46 @@ const clearAllImages = () => {
   referenceImages.value = []
 }
 
+// Gallery import functions
+const openGalleryImport = () => {
+  // 检查是否还能添加更多图片
+  if (referenceImages.value.length >= 4) {
+    alert('已达到最大上传数量（4张）')
+    return
+  }
+  showGalleryImport.value = true
+}
+
+const handleGalleryImport = (importedImages: UploadedImage[]) => {
+  // 检查总数量是否超过限制
+  const totalCount = referenceImages.value.length + importedImages.length
+  if (totalCount > 4) {
+    const remaining = 4 - referenceImages.value.length
+    alert(`最多只能上传4张图片，当前已有${referenceImages.value.length}张，还可以添加${remaining}张`)
+    showGalleryImport.value = false
+    return
+  }
+
+  // 转换 UploadedImage 为 ReferenceImage 格式
+  const newImages: ReferenceImage[] = importedImages.map((img, index) => ({
+    id: `gallery-${Date.now()}-${index}`,
+    url: img.url,
+    order: referenceImages.value.length + index + 1
+  }))
+
+  // 追加到现有图片列表
+  referenceImages.value = [...referenceImages.value, ...newImages]
+
+  // 重新排序
+  referenceImages.value.sort((a, b) => a.order - b.order)
+
+  showGalleryImport.value = false
+}
+
+const closeGalleryImport = () => {
+  showGalleryImport.value = false
+}
+
 // 处理文件列表的通用函数
 const processFiles = (files: FileList | File[]) => {
   const fileArray = Array.from(files)
@@ -219,13 +264,15 @@ const processFiles = (files: FileList | File[]) => {
   }
 
   // 验证文件数量
-  if (imageFiles.length < 3 || imageFiles.length > 4) {
-    alert('每组需要3或4张搭配图')
+  const totalCount = referenceImages.value.length + imageFiles.length
+  if (totalCount > 4) {
+    const remaining = 4 - referenceImages.value.length
+    alert(`最多只能上传4张图片，当前已有${referenceImages.value.length}张，还可以添加${remaining}张`)
     return
   }
 
-  // 清空现有图片
-  referenceImages.value = []
+  // 保留现有图片（拖拽和粘贴采用追加模式）
+  // 不再清空现有图片
 
   // 处理每个文件
   imageFiles.forEach((file, index) => {
@@ -241,7 +288,7 @@ const processFiles = (files: FileList | File[]) => {
         id: `ref-${Date.now()}-${index}`,
         url,
         file,
-        order: index + 1
+        order: referenceImages.value.length + index + 1
       }
 
       referenceImages.value.push(newImage)
@@ -301,7 +348,7 @@ const selectAspectRatio = (ratio: any) => {
 
 // Validation
 const canGenerate = computed(() => {
-  return referenceImages.value.length >= 3 &&
+  return referenceImages.value.length >= 1 &&
          referenceImages.value.length <= 4 &&
          customPrompt.value.trim().length > 0 &&
          selectedAspectRatio.value !== null
@@ -314,8 +361,8 @@ const canAddToQueue = computed(() => {
 // Single generation
 const generateCollageImages = () => {
   if (!canGenerate.value) {
-    if (referenceImages.value.length < 3) {
-      alert('每组需要3或4张搭配图')
+    if (referenceImages.value.length < 1) {
+      alert('每组需要1-4张搭配图')
     } else if (customPrompt.value.trim().length === 0) {
       alert('请输入prompt描述或选择照片类型')
     } else if (!selectedAspectRatio.value) {
@@ -672,13 +719,13 @@ onUnmounted(() => {
           <!-- Header -->
           <div class="mb-8">
             <h1 class="text-3xl font-bold text-white mb-2">搭配图生成</h1>
-            <p class="text-base text-gray-400">上传3-4张搭配图，支持服装搭配图+背景图等组合，AI将基于这些图片生成新的图像</p>
+            <p class="text-base text-gray-400">上传1-4张搭配图，支持服装搭配图+背景图等组合，AI将基于这些图片生成新的图像</p>
           </div>
 
           <!-- Reference Images Upload -->
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-white mb-4">搭配图上传</h2>
-            <p class="text-sm text-gray-400 mb-4">每组3或4张，可以一次性上传或拖拽、粘贴上传</p>
+            <p class="text-sm text-gray-400 mb-4">每组1-4张，可以一次性上传、拖拽、粘贴上传或从图库选择</p>
 
             <!-- Hidden file input -->
             <input
@@ -707,7 +754,7 @@ onUnmounted(() => {
               <div class="flex flex-col items-center justify-center text-center">
                 <Camera class="w-16 h-16 text-gray-600 mb-4" />
                 <h3 class="text-lg font-semibold text-white mb-2">点击、拖拽或粘贴上传图片</h3>
-                <p class="text-sm text-gray-400 mb-1">每组3或4张搭配图</p>
+                <p class="text-sm text-gray-400 mb-1">每组1-4张搭配图</p>
                 <p class="text-xs text-gray-500">支持 JPG、PNG 等格式，每张图片最大10MB</p>
                 <p class="text-xs text-gray-500 mt-2">💡 提示: Ctrl+V / Cmd+V 粘贴图片</p>
               </div>
@@ -751,6 +798,14 @@ onUnmounted(() => {
                   <span>重新选择</span>
                 </button>
                 <button
+                  @click="openGalleryImport"
+                  :disabled="referenceImages.length >= 4"
+                  class="flex-1 py-2.5 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm font-medium text-white transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Folder class="w-4 h-4" />
+                  <span>从图库选择</span>
+                </button>
+                <button
                   @click="clearAllImages"
                   class="py-2.5 px-4 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 rounded-lg text-sm font-medium text-red-400 transition-all"
                 >
@@ -763,7 +818,7 @@ onUnmounted(() => {
             <div class="mt-4 flex items-center justify-between text-sm">
               <span class="text-gray-400">
                 已上传: <span class="text-white font-medium">{{ referenceImages.length }}</span> / 4 张
-                <span v-if="referenceImages.length < 3" class="text-yellow-400 ml-2">（每组需要3或4张）</span>
+                <span v-if="referenceImages.length === 0" class="text-yellow-400 ml-2">（每组需要1-4张）</span>
                 <span v-else class="text-green-400 ml-2">✓</span>
               </span>
             </div>
@@ -1204,6 +1259,14 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Gallery Import Modal -->
+    <GalleryImportModal
+      v-if="showGalleryImport"
+      :max-selection="4 - referenceImages.length"
+      @close="closeGalleryImport"
+      @import="handleGalleryImport"
+    />
   </div>
 </template>
 
