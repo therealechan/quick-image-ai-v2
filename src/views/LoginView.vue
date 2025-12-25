@@ -7,8 +7,8 @@ import VerificationCodeInput from '../components/VerificationCodeInput.vue'
 
 const router = useRouter()
 
-// 登录方式切换
-const loginMethod = ref<'email' | 'phone'>('email')
+// 登录方式切换（默认手机登录）
+const loginMethod = ref<'email' | 'phone'>('phone')
 
 // 邮箱登录
 const email = ref('demo@quickimage.ai')
@@ -106,21 +106,6 @@ const goToSignUp = () => {
         <!-- Tab 切换 -->
         <div class="flex border-b border-gray-700 mb-6">
           <button
-            @click="loginMethod = 'email'"
-            type="button"
-            :class="[
-              'flex-1 py-3 text-sm font-medium transition-colors relative',
-              loginMethod === 'email'
-                ? 'text-primary-400'
-                : 'text-gray-400 hover:text-gray-300'
-            ]"
-          >
-            <Mail class="inline h-4 w-4 mr-2" />
-            邮箱登录
-            <div v-if="loginMethod === 'email'"
-                 class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-600" />
-          </button>
-          <button
             @click="loginMethod = 'phone'"
             type="button"
             :class="[
@@ -135,9 +120,56 @@ const goToSignUp = () => {
             <div v-if="loginMethod === 'phone'"
                  class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-600" />
           </button>
+          <button
+            @click="loginMethod = 'email'"
+            type="button"
+            :class="[
+              'flex-1 py-3 text-sm font-medium transition-colors relative',
+              loginMethod === 'email'
+                ? 'text-primary-400'
+                : 'text-gray-400 hover:text-gray-300'
+            ]"
+          >
+            <Mail class="inline h-4 w-4 mr-2" />
+            邮箱登录
+            <div v-if="loginMethod === 'email'"
+                 class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-600" />
+          </button>
         </div>
 
         <form @submit.prevent="handleLogin" class="space-y-6">
+          <!-- 手机登录表单 -->
+          <div v-show="loginMethod === 'phone'" class="space-y-6">
+            <div>
+              <label for="phone" class="block text-sm font-medium text-gray-300 mb-2">
+                手机号码
+              </label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Smartphone class="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="phone"
+                  v-model="phone"
+                  type="tel"
+                  inputmode="tel"
+                  placeholder="请输入手机号"
+                  class="w-full pl-10 pr-3 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 transition-colors text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">
+                验证码
+              </label>
+              <VerificationCodeInput
+                v-model="verificationCode"
+                :phone="phone"
+              />
+            </div>
+          </div>
+
           <!-- 邮箱登录表单 -->
           <div v-show="loginMethod === 'email'" class="space-y-6">
             <div>
@@ -189,38 +221,6 @@ const goToSignUp = () => {
             </div>
           </div>
 
-          <!-- 手机登录表单 -->
-          <div v-show="loginMethod === 'phone'" class="space-y-6">
-            <div>
-              <label for="phone" class="block text-sm font-medium text-gray-300 mb-2">
-                手机号码
-              </label>
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Smartphone class="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="phone"
-                  v-model="phone"
-                  type="tel"
-                  inputmode="tel"
-                  placeholder="请输入手机号"
-                  class="w-full pl-10 pr-3 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 transition-colors text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">
-                验证码
-              </label>
-              <VerificationCodeInput
-                v-model="verificationCode"
-                :phone="phone"
-              />
-            </div>
-          </div>
-
           <div v-if="error" class="bg-red-900/20 border border-red-800 text-red-400 px-4 py-3 rounded-lg text-sm">
             {{ error }}
           </div>
@@ -250,8 +250,8 @@ const goToSignUp = () => {
         <div class="mt-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
           <p class="text-sm text-gray-300 font-medium mb-2">演示账户：</p>
           <div class="text-xs text-gray-400 space-y-1">
-            <div>邮箱: demo@quickimage.ai / 密码: password123</div>
             <div>手机: 13800138000 / 验证码: 123456</div>
+            <div>邮箱: demo@quickimage.ai / 密码: password123</div>
           </div>
         </div>
       </div>
