@@ -251,12 +251,12 @@ class InvitationService {
   async processInvitation(request: ProcessInvitationRequest): Promise<InvitationResponse> {
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    const { invitationCode, newUserId, newUserName, newUserEmail } = request
+    const { invitationCode, newUserId, newUserName, newUserEmail, newUserPhone } = request
 
     // Check if it's a special invitation code
     if (SPECIAL_INVITATION_CODES[invitationCode]) {
       const specialCode = SPECIAL_INVITATION_CODES[invitationCode]
-      
+
       // Give credits directly to the new user
       try {
         await authService.addCredits(newUserId, specialCode.creditsReward)
@@ -271,6 +271,7 @@ class InvitationService {
         inviteeId: newUserId,
         inviteeName: newUserName,
         inviteeEmail: newUserEmail,
+        inviteePhone: newUserPhone,
         invitationCode,
         status: 'completed',
         createdAt: new Date(),
@@ -299,15 +300,18 @@ class InvitationService {
       }
     }
 
-    // Check if this user was already invited by this code
+    // Check if this user was already invited by this code (by email or phone)
     const existingInvitation = this.invitations.find(
-      inv => inv.inviteeEmail === newUserEmail && inv.invitationCode === invitationCode
+      inv =>
+        (newUserEmail && inv.inviteeEmail === newUserEmail ||
+         newUserPhone && inv.inviteePhone === newUserPhone) &&
+        inv.invitationCode === invitationCode
     )
 
     if (existingInvitation) {
       return {
         success: false,
-        error: '该邮箱已经使用过此邀请码'
+        error: '该账户已经使用过此邀请码'
       }
     }
 
@@ -318,6 +322,7 @@ class InvitationService {
       inviteeId: newUserId,
       inviteeName: newUserName,
       inviteeEmail: newUserEmail,
+      inviteePhone: newUserPhone,
       invitationCode,
       status: 'completed',
       createdAt: new Date(),

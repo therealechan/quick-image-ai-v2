@@ -116,16 +116,27 @@ const formatDate = (date: Date) => {
   }).format(date)
 }
 
-// 邮箱遮蔽函数
-const maskEmail = (email: string) => {
-  const [username, domain] = email.split('@')
-  if (!username || !domain) {
-    return email // 如果邮箱格式不正确，返回原始邮箱
+// 邮箱/手机号遮蔽函数
+const maskContactInfo = (invitation: InvitationRecord) => {
+  // 优先显示邮箱，其次显示手机号
+  if (invitation.inviteeEmail) {
+    const [username, domain] = invitation.inviteeEmail.split('@')
+    if (!username || !domain) {
+      return invitation.inviteeEmail // 如果邮箱格式不正确，返回原始邮箱
+    }
+    if (username.length <= 2) {
+      return `${username[0]}***@${domain}`
+    }
+    return `${username.slice(0, 2)}***@${domain}`
+  } else if (invitation.inviteePhone) {
+    // 手机号脱敏：+86 138****1234
+    const phone = invitation.inviteePhone
+    if (phone.startsWith('+86') && phone.length === 14) {
+      return `${phone.substring(0, 6)}****${phone.substring(10)}`
+    }
+    return phone
   }
-  if (username.length <= 2) {
-    return `${username[0]}***@${domain}`
-  }
-  return `${username.slice(0, 2)}***@${domain}`
+  return '未知用户'
 }
 
 // Pagination functions
@@ -300,7 +311,7 @@ onMounted(() => {
                 </div>
                 
                 <div class="flex-1 min-w-0">
-                  <p class="text-white font-medium truncate text-base">{{ maskEmail(invitation.inviteeEmail) }}</p>
+                  <p class="text-white font-medium truncate text-base">{{ maskContactInfo(invitation) }}</p>
                   <p class="text-gray-500 text-sm">{{ formatDate(invitation.createdAt) }}</p>
                 </div>
 

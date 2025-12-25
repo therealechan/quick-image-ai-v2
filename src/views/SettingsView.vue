@@ -58,8 +58,8 @@ const formatDate = (date: Date): string => {
 // Initialize forms
 const initializeForms = () => {
   if (currentUser.value) {
-    profileForm.name = currentUser.value.name
-    profileForm.email = currentUser.value.email
+    profileForm.name = currentUser.value.name || ''
+    profileForm.email = currentUser.value.email || ''
   }
 }
 

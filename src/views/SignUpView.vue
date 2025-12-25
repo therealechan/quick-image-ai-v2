@@ -1,20 +1,31 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Mail, Lock, User as UserIcon, Eye, EyeOff, Loader2, Check, X, Gift, Info } from 'lucide-vue-next'
-import { authService, type SignUpCredentials, type User } from '../services/auth'
+import { Mail, Lock, User as UserIcon, Eye, EyeOff, Loader2, Check, X, Gift, Info, Smartphone } from 'lucide-vue-next'
+import { authService, type SignUpCredentials, type User, type PhoneSignUpCredentials } from '../services/auth'
 import { invitationService } from '../services/invitationService'
+import VerificationCodeInput from '../components/VerificationCodeInput.vue'
 
 const router = useRouter()
 const route = useRoute()
 
+// 注册方式切换
+const signupMethod = ref<'email' | 'phone'>('email')
+
+// 邮箱注册
 const name = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
-const invitationCode = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
+
+// 手机注册
+const phone = ref('')
+const phoneVerificationCode = ref('')
+
+// 通用字段
+const invitationCode = ref('')
 const isLoading = ref(false)
 const error = ref('')
 const showEmailVerificationModal = ref(false)
@@ -40,13 +51,20 @@ const passwordsMatch = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return name.value && 
-         email.value && 
-         password.value && 
-         confirmPassword.value &&
-         isValidEmail.value && 
-         isValidPassword.value && 
-         passwordsMatch.value
+  if (signupMethod.value === 'email') {
+    return (
+      name.value &&
+      email.value &&
+      password.value &&
+      confirmPassword.value &&
+      isValidEmail.value &&
+      isValidPassword.value &&
+      passwordsMatch.value
+    )
+  } else {
+    // 手机注册只需手机号和验证码
+    return phone.value && phoneVerificationCode.value
+  }
 })
 
 const togglePasswordVisibility = () => {
@@ -62,49 +80,91 @@ const handleSignUp = async () => {
 
   error.value = ''
 
-  if (!passwordsMatch.value) {
-    error.value = '两次输入的密码不一致'
-    return
-  }
-
-  isLoading.value = true
-
-  try {
-    // 首先注册用户
-    const credentials: SignUpCredentials = {
-      name: name.value,
-      email: email.value,
-      password: password.value
+  // 邮箱注册
+  if (signupMethod.value === 'email') {
+    if (!passwordsMatch.value) {
+      error.value = '两次输入的密码不一致'
+      return
     }
 
-    const result = await authService.signUp(credentials)
+    isLoading.value = true
 
-    if (result.success && result.user) {
-      // 如果有邀请码，处理邀请奖励
-      if (invitationCode.value.trim()) {
-        try {
-          await invitationService.processInvitation({
-            invitationCode: invitationCode.value.trim(),
-            newUserId: result.user.id,
-            newUserName: result.user.name,
-            newUserEmail: result.user.email
-          })
-        } catch (inviteError) {
-          console.error('处理邀请码失败:', inviteError)
-          // 不阻止注册流程，邀请码处理失败不影响正常注册
-        }
+    try {
+      // 首先注册用户
+      const credentials: SignUpCredentials = {
+        name: name.value,
+        email: email.value,
+        password: password.value
       }
 
-      // 显示邮箱验证模态框而不是直接跳转
-      registeredUser.value = result.user
-      showEmailVerificationModal.value = true
-    } else {
-      error.value = result.error || '注册失败'
+      const result = await authService.signUp(credentials)
+
+      if (result.success && result.user) {
+        // 如果有邀请码，处理邀请奖励
+        if (invitationCode.value.trim()) {
+          try {
+            await invitationService.processInvitation({
+              invitationCode: invitationCode.value.trim(),
+              newUserId: result.user.id,
+              newUserName: result.user.name!,
+              newUserEmail: result.user.email!
+            })
+          } catch (inviteError) {
+            console.error('处理邀请码失败:', inviteError)
+          }
+        }
+
+        // 显示邮箱验证模态框
+        registeredUser.value = result.user
+        showEmailVerificationModal.value = true
+      } else {
+        error.value = result.error || '注册失败'
+      }
+    } catch {
+      error.value = '注册时发生错误，请稍后重试'
+    } finally {
+      isLoading.value = false
     }
-  } catch {
-    error.value = '注册时发生错误，请稍后重试'
-  } finally {
-    isLoading.value = false
+  }
+  // 手机注册
+  else {
+    isLoading.value = true
+
+    try {
+      const credentials: PhoneSignUpCredentials = {
+        phone: phone.value,
+        verificationCode: phoneVerificationCode.value,
+        invitationCode: invitationCode.value.trim() || undefined
+      }
+
+      const result = await authService.signUpWithPhone(credentials)
+
+      if (result.success && result.user) {
+        // 如果有邀请码，处理邀请奖励
+        if (invitationCode.value.trim()) {
+          try {
+            await invitationService.processInvitation({
+              invitationCode: invitationCode.value.trim(),
+              newUserId: result.user.id,
+              newUserName: result.user.name!,
+              newUserEmail: result.user.email,
+              newUserPhone: result.user.phone
+            })
+          } catch (inviteError) {
+            console.error('处理邀请码失败:', inviteError)
+          }
+        }
+
+        // 手机注册直接跳转，无需邮箱验证
+        router.push('/model-generation')
+      } else {
+        error.value = result.error || '注册失败'
+      }
+    } catch {
+      error.value = '注册时发生错误，请稍后重试'
+    } finally {
+      isLoading.value = false
+    }
   }
 }
 
@@ -154,12 +214,48 @@ onMounted(() => {
           <p class="text-gray-400">加入 Quickimage.ai，开始创作之旅</p>
         </div>
 
+        <!-- Tab 切换 -->
+        <div class="flex border-b border-gray-700 mb-6">
+          <button
+            @click="signupMethod = 'email'"
+            type="button"
+            :class="[
+              'flex-1 py-3 text-sm font-medium transition-colors relative',
+              signupMethod === 'email'
+                ? 'text-primary-400'
+                : 'text-gray-400 hover:text-gray-300'
+            ]"
+          >
+            <Mail class="inline h-4 w-4 mr-2" />
+            邮箱注册
+            <div v-if="signupMethod === 'email'"
+                 class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-600" />
+          </button>
+          <button
+            @click="signupMethod = 'phone'"
+            type="button"
+            :class="[
+              'flex-1 py-3 text-sm font-medium transition-colors relative',
+              signupMethod === 'phone'
+                ? 'text-primary-400'
+                : 'text-gray-400 hover:text-gray-300'
+            ]"
+          >
+            <Smartphone class="inline h-4 w-4 mr-2" />
+            手机注册
+            <div v-if="signupMethod === 'phone'"
+                 class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-600" />
+          </button>
+        </div>
+
         <form @submit.prevent="handleSignUp" class="space-y-6">
-          <div>
-            <label for="name" class="block text-sm font-medium text-gray-300 mb-2">
-              姓名
-            </label>
-            <div class="relative">
+          <!-- 邮箱注册表单 -->
+          <div v-show="signupMethod === 'email'" class="space-y-6">
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-300 mb-2">
+                姓名
+              </label>
+              <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <UserIcon class="h-5 w-5 text-gray-400" />
               </div>
@@ -279,6 +375,7 @@ onMounted(() => {
             </p>
           </div>
 
+          <!-- 邮箱注册时的邀请码 -->
           <div>
             <label for="invitationCode" class="block text-sm font-medium text-gray-300 mb-2">
               邀请码 <span class="text-gray-500">(可选)</span>
@@ -314,6 +411,73 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+          </div>
+
+          <!-- 手机注册表单 -->
+          <div v-show="signupMethod === 'phone'" class="space-y-6">
+            <div>
+              <label for="phoneSignup" class="block text-sm font-medium text-gray-300 mb-2">
+                手机号码
+              </label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Smartphone class="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="phoneSignup"
+                  v-model="phone"
+                  type="tel"
+                  inputmode="tel"
+                  placeholder="请输入手机号"
+                  class="w-full pl-10 pr-3 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 transition-colors text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">
+                验证码
+              </label>
+              <VerificationCodeInput
+                v-model="phoneVerificationCode"
+                :phone="phone"
+              />
+            </div>
+
+            <!-- 手机注册时的邀请码 -->
+            <div>
+              <label for="invitationCodePhone" class="block text-sm font-medium text-gray-300 mb-2">
+                邀请码 <span class="text-gray-500">(可选)</span>
+              </label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Gift class="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="invitationCodePhone"
+                  v-model="invitationCode"
+                  type="text"
+                  class="w-full pl-10 pr-3 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-white placeholder-gray-400 transition-colors"
+                  placeholder="输入邀请码（如有）"
+                />
+              </div>
+              <div v-if="invitationCode" class="mt-2 space-y-2">
+                <p v-if="specialInviteInfo" class="text-sm text-green-400 font-medium">
+                  🎉 {{ specialInviteInfo.description }}
+                </p>
+                <p v-else class="text-sm text-blue-400">
+                  使用邀请码注册，邀请人将获得1000积分奖励
+                </p>
+              </div>
+            </div>
+
+            <!-- 提示信息 -->
+            <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
+              <p class="text-xs text-gray-400">
+                注册后可在设置中添加邮箱和修改姓名
+              </p>
             </div>
           </div>
 

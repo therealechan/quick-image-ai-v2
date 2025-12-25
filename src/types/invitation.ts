@@ -3,7 +3,8 @@ export interface InvitationRecord {
   inviterId: string // 邀请者ID
   inviteeId: string // 被邀请者ID
   inviteeName: string // 被邀请者姓名
-  inviteeEmail: string // 被邀请者邮箱
+  inviteeEmail?: string // 被邀请者邮箱（可选，支持手机号用户）
+  inviteePhone?: string // 被邀请者手机号（新增）
   invitationCode: string // 邀请码
   status: 'pending' | 'completed' // 邀请状态
   createdAt: Date
@@ -26,7 +27,8 @@ export interface ProcessInvitationRequest {
   invitationCode: string
   newUserId: string
   newUserName: string
-  newUserEmail: string
+  newUserEmail?: string // 改为可选，支持手机号用户
+  newUserPhone?: string // 新增，支持手机号用户
 }
 
 export interface PaginationParams {
